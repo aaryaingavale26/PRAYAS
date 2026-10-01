@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRAYAS 3.0 — AI Conversational Agent Workbench (Stage 4)</title>
+  <style>
+    :root {
+      --bg: #070d1e;
+      --card-bg: #0f1933;
+      --card-border: #1e2f57;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --focus-ring: #38bdf8;
+      --step-active: #6366f1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      padding: 24px;
+      line-height: 1.5;
+    }
+
+    header {
+      max-width: 1060px;
+      margin: 0 auto 20px auto;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge-stage {
+      background: #4f46e5;
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      margin-top: 6px;
+      font-size: 0.95rem;
+    }
+
+    /* 7-Step Visual Stepper */
+    .stepper {
+      max-width: 1060px;
+      margin: 0 auto 20px auto;
+      display: flex;
+      justify-content: space-between;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 12px 18px;
+      overflow-x: auto;
+      gap: 10px;
+    }
+
+    .step-node {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .step-number {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #1e293b;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+    }
+
+    .step-node.active {
+      color: #38bdf8;
+    }
+    .step-node.active .step-number {
+      background: #3b82f6;
+      color: #fff;
+      box-shadow: 0 0 10px #3b82f6;
+    }
+
+    .step-node.completed {
+      color: #34d399;
+    }
+    .step-node.completed .step-number {
+      background: #10b981;
+      color: #fff;
+    }
+
+    main {
+      max-width: 1060px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 860px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 22px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Target Question Input */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+    }
+
+    textarea, input {
+      width: 100%;
+      padding: 12px 14px;
+      background: #070d1e;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.95rem;
+      font-family: inherit;
+    }
+
+    textarea:focus, input:focus {
+      outline: 3px solid var(--focus-ring);
+      border-color: transparent;
+    }
+
+    /* Draft Review Card */
+    .draft-card {
+      background: #080f24;
+      border: 2px solid #3b82f6;
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 14px;
+      display: none;
+    }
+    .draft-card.visible { display: block; }
+
+    .draft-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .confidence-badge {
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid #10b981;
+      color: #34d399;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 9999px;
+    }
+
+    .draft-body {
+      background: #040814;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #e2e8f0;
+      margin-bottom: 12px;
+    }
+
+    .sources-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .source-tag {
+      background: #1e293b;
+      color: #38bdf8;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+
+    .btn:focus-visible { outline: 3px solid var(--focus-ring); }
+
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-success:hover { background: #059669; }
+
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { background: #dc2626; }
+
+    .btn-secondary { background: #1e293b; color: #f1f5f9; border: 1px solid #334155; }
+    .btn-secondary:hover { background: #334155; }
+
+    .kbd {
+      background: #020617;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      border: 1px solid #334155;
+      color: #94a3b8;
+    }
+
+    /* Clarification Drawer */
+    .clarification-box {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid var(--warning);
+      padding: 14px;
+      border-radius: 8px;
+      margin-top: 14px;
+      display: none;
+    }
+    .clarification-box.visible { display: block; }
+
+    /* Event Log */
+    .event-log {
+      background: #040814;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .log-item { padding: 4px 0; border-bottom: 1px solid #131d2e; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>
+      <span>🤖 PRAYAS 3.0 Conversational Agent</span>
+      <span class="badge-stage">Stage 4 Flow</span>
+    </h1>
+    <p class="subtitle">
+      7-Step RAG dialog: Read question &rarr; Consent &rarr; Backend query &rarr; Draft receipt &rarr; Spoken readout &rarr; Accept/Edit/Reject &rarr; Confirmed insertion.
+    </p>
+  </header>
+
+  <!-- 7-Step Visual Stepper -->
+  <div class="stepper" id="flow-stepper" role="navigation" aria-label="Assistance flow steps">
+    <div class="step-node" id="step-1"><span class="step-number">1</span> <span>Read Question</span></div>
+    <div class="step-node" id="step-2"><span class="step-number">2</span> <span>User Consent</span></div>
+    <div class="step-node" id="step-3"><span class="step-number">3</span> <span>Query RAG</span></div>
+    <div class="step-node" id="step-4"><span class="step-number">4</span> <span>Receive Draft</span></div>
+    <div class="step-node" id="step-5"><span class="step-number">5</span> <span>Read Aloud</span></div>
+    <div class="step-node" id="step-6"><span class="step-number">6</span> <span>User Review</span></div>
+    <div class="step-node" id="step-7"><span class="step-number">7</span> <span>Confirmed Insert</span></div>
+  </div>
+
+  <main>
+    <!-- Left Column: Form Question & Insertion Target -->
+    <section class="card" aria-labelledby="form-card-title">
+      <div class="card-title">
+        <h2 id="form-card-title">Application Form Question</h2>
+        <span style="font-size: 0.8rem; color: #34d399; font-weight: 600;">🔒 No Auto-Submit Safe</span>
+      </div>
+
+      <div class="form-group">
+        <label for="input-question">Application Prompt:</label>
+        <input type="text" id="input-question" value="Describe how you handled an accessibility challenge in a previous engineering project.">
+      </div>
+
+      <div class="form-group">
+        <label for="target-field">Candidate Answer Field (Target):</label>
+        <textarea id="target-field" rows="4" placeholder="Your answer will appear here only after you confirm and accept it..."></textarea>
+      </div>
+
+      <!-- Low-Evidence Clarification Panel -->
+      <div id="clarification-panel" class="clarification-box" role="region" aria-live="polite">
+        <h3 style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 6px;">
+          ⚠️ Low Evidence in Resume — Clarification Required
+        </h3>
+        <p id="clarification-prompt-text" style="font-size: 0.88rem; color: #fde68a; margin-bottom: 10px;">
+          I could not find relevant details in your uploaded resume. What specific experience would you like to highlight?
+        </p>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="clarification-input" placeholder="Type or speak supplementary details...">
+          <button id="btn-submit-clarification" class="btn btn-primary" style="white-space: nowrap;">
+            Submit Notes
+          </button>
+        </div>
+      </div>
+
+      <!-- Draft Review Card (Step 5 & 6) -->
+      <div id="draft-card" class="draft-card" role="region" aria-live="polite">
+        <div class="draft-header">
+          <span style="font-size: 0.9rem; font-weight: 700; color: #38bdf8;">📝 Personalized AI Draft</span>
+          <span id="draft-confidence" class="confidence-badge">94% Confidence</span>
+        </div>
+
+        <div id="draft-body" class="draft-body" contenteditable="true" aria-label="Draft answer text; editable"></div>
+
+        <div class="sources-list" id="draft-sources">
+          <!-- Sources chips -->
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button id="btn-accept-draft" class="btn btn-success" aria-label="Accept draft and insert (Shortcut: Alt+A)">
+            ✓ Accept & Insert <span class="kbd">Alt+A</span>
+          </button>
+          <button id="btn-edit-draft" class="btn btn-secondary" aria-label="Edit draft manually">
+            ✏️ Save Edits
+          </button>
+          <button id="btn-reject-draft" class="btn btn-danger" aria-label="Reject and discard draft (Shortcut: Alt+X)">
+            ✕ Reject Draft <span class="kbd">Alt+X</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Conversational Flow Controls -->
+    <section class="card" aria-labelledby="controls-card-title">
+      <div class="card-title">
+        <h2 id="controls-card-title">Agent Dialog Controls</h2>
+      </div>
+
+      <!-- Start Assistance Button -->
+      <button id="btn-start-flow" class="btn btn-primary" style="width: 100%; margin-bottom: 12px; padding: 12px; font-size: 1rem;">
+        🚀 Start 7-Step Assistance Flow <span class="kbd">Alt+H</span>
+      </button>
+
+      <!-- Simulated Quick Question Scenarios -->
+      <div style="background: #070d1e; padding: 12px; border-radius: 8px; border: 1px solid var(--card-border); margin-bottom: 16px;">
+        <span style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 8px;">
+          Test Scenarios:
+        </span>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button id="btn-preset-standard" class="btn btn-secondary" style="font-size: 0.78rem; padding: 6px 10px;">
+            Standard Accessible Question
+          </button>
+          <button id="btn-preset-obscure" class="btn btn-secondary" style="font-size: 0.78rem; padding: 6px 10px;">
+            Obscure Question (Low Evidence)
+          </button>
+        </div>
+      </div>
+
+      <!-- Spoken Consent Triggers -->
+      <div id="consent-buttons-box" style="margin-bottom: 16px; display: none;">
+        <span style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 8px;">
+          Consent Question: "Would you like help?"
+        </span>
+        <div style="display: flex; gap: 10px;">
+          <button id="btn-consent-yes" class="btn btn-success" style="flex: 1;">
+            👍 Yes, Draft It <span class="kbd">Alt+Y</span>
+          </button>
+          <button id="btn-consent-no" class="btn btn-danger" style="flex: 1;">
+            👎 No, Skip <span class="kbd">Alt+N</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Microphone & Stop Controls -->
+      <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+        <button id="btn-mic-toggle" class="btn btn-secondary" style="flex: 1;">
+          🎤 Toggle Mic <span class="kbd">Alt+M</span>
+        </button>
+        <button id="btn-stop-audio" class="btn btn-danger" style="flex: 1;">
+          ⏹ Stop Audio <span class="kbd">Esc</span>
+        </button>
+      </div>
+
+      <h3 style="font-size: 0.95rem; margin-bottom: 6px; color: #cbd5e1;">Conversational Event Log</h3>
+      <div id="agent-log" class="event-log" role="log" aria-live="polite">
+        <div class="log-item">[Ready] Conversational agent initialized.</div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { SpeechRecognizer, RecognitionState } from '../src/voice/speech-recognizer.js';
+    import { SpeechSynthesizer } from '../src/voice/speech-synthesizer.js';
+    import { ExtensionBridge } from '../src/bridge/extension-bridge.js';
+    import { ConversationalAgent, AgentFlowStep } from '../src/agent/conversational-agent.js';
+
+    // DOM Elements
+    const inputQuestion = document.getElementById('input-question');
+    const targetField = document.getElementById('target-field');
+    const clarificationPanel = document.getElementById('clarification-panel');
+    const clarificationPromptText = document.getElementById('clarification-prompt-text');
+    const clarificationInput = document.getElementById('clarification-input');
+    const btnSubmitClarification = document.getElementById('btn-submit-clarification');
+
+    const draftCard = document.getElementById('draft-card');
+    const draftConfidence = document.getElementById('draft-confidence');
+    const draftBody = document.getElementById('draft-body');
+    const draftSources = document.getElementById('draft-sources');
+    const btnAcceptDraft = document.getElementById('btn-accept-draft');
+    const btnEditDraft = document.getElementById('btn-edit-draft');
+    const btnRejectDraft = document.getElementById('btn-reject-draft');
+
+    const btnStartFlow = document.getElementById('btn-start-flow');
+    const consentButtonsBox = document.getElementById('consent-buttons-box');
+    const btnConsentYes = document.getElementById('btn-consent-yes');
+    const btnConsentNo = document.getElementById('btn-consent-no');
+    const btnMicToggle = document.getElementById('btn-mic-toggle');
+    const btnStopAudio = document.getElementById('btn-stop-audio');
+    const agentLog = document.getElementById('agent-log');
+
+    const btnPresetStandard = document.getElementById('btn-preset-standard');
+    const btnPresetObscure = document.getElementById('btn-preset-obscure');
+
+    function log(msg) {
+      const time = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = 'log-item';
+      div.textContent = `[${time}] ${msg}`;
+      agentLog.prepend(div);
+    }
+
+    // Initialize Components
+    const recognizer = new SpeechRecognizer({ lang: 'en-US', continuous: false });
+    const synthesizer = new SpeechSynthesizer({ rate: 1.0 });
+
+    // Mock bridge that updates the textarea target
+    const mockBridgeHandler = {
+      handleMessage: (message) => {
+        if (message.type === 'GET_ACTIVE_QUESTION') {
+          return { success: true, question: inputQuestion.value, fieldId: 'target-field' };
+        }
+        if (message.type === 'INSERT_DRAFT_ANSWER') {
+          targetField.value = message.payload?.text || '';
+          targetField.dispatchEvent(new Event('input', { bubbles: true }));
+          return { success: true, inserted: true };
+        }
+        return { success: true };
+      }
+    };
+
+    const bridge = new ExtensionBridge({ allowFallback: true, mockHandler: mockBridgeHandler });
+    const agent = new ConversationalAgent({
+      synthesizer,
+      bridge,
+      backendUrl: 'http://localhost:8000/api/v1/generate-answer',
+      useMockBackend: true // Set to false to test live FastAPI port 8000
+    });
+
+    // Update 7-Step Stepper Display
+    function updateStepper(stepIndex) {
+      for (let i = 1; i <= 7; i++) {
+        const node = document.getElementById(`step-${i}`);
+        if (i < stepIndex) {
+          node.className = 'step-node completed';
+        } else if (i === stepIndex) {
+          node.className = 'step-node active';
+        } else {
+          node.className = 'step-node';
+        }
+      }
+    }
+
+    // Step State Listener
+    agent.onStepChange = (step, payload) => {
+      log(`Step transitioned to: ${step}`);
+
+      switch (step) {
+        case AgentFlowStep.READING_QUESTION:
+          updateStepper(1);
+          draftCard.classList.remove('visible');
+          clarificationPanel.classList.remove('visible');
+          consentButtonsBox.style.display = 'none';
+          break;
+
+        case AgentFlowStep.AWAITING_CONSENT:
+          updateStepper(2);
+          consentButtonsBox.style.display = 'block';
+          break;
+
+        case AgentFlowStep.FETCHING_DRAFT:
+          updateStepper(3);
+          consentButtonsBox.style.display = 'none';
+          break;
+
+        case AgentFlowStep.AWAITING_CLARIFICATION:
+          updateStepper(4);
+          clarificationPanel.classList.add('visible');
+          if (payload?.prompt) {
+            clarificationPromptText.textContent = payload.prompt;
+          }
+          break;
+
+        case AgentFlowStep.REVIEWING_DRAFT:
+          updateStepper(5);
+          clarificationPanel.classList.remove('visible');
+          draftCard.classList.add('visible');
+          draftBody.innerText = payload.draft;
+          draftConfidence.textContent = `${Math.round(payload.metadata.confidence * 100)}% Confidence`;
+
+          draftSources.innerHTML = '';
+          (payload.metadata.sources || []).forEach(src => {
+            const span = document.createElement('span');
+            span.className = 'source-tag';
+            span.textContent = `📄 ${src}`;
+            draftSources.appendChild(span);
+          });
+          break;
+
+        case AgentFlowStep.INSERTED:
+          updateStepper(7);
+          draftCard.classList.remove('visible');
+          log('Draft confirmed and safely inserted into field without submission.');
+          break;
+
+        case AgentFlowStep.REJECTED:
+          draftCard.classList.remove('visible');
+          clarificationPanel.classList.remove('visible');
+          consentButtonsBox.style.display = 'none';
+          log('Assistance flow halted by user.');
+          break;
+      }
+    };
+
+    // Start Flow
+    btnStartFlow.addEventListener('click', () => {
+      agent.startAssistanceFlow(inputQuestion.value);
+    });
+
+    // Consent Buttons
+    btnConsentYes.addEventListener('click', () => agent.handleConsentResponse(true));
+    btnConsentNo.addEventListener('click', () => agent.handleConsentResponse(false));
+
+    // Clarification Submission
+    btnSubmitClarification.addEventListener('click', () => {
+      const notes = clarificationInput.value.trim();
+      if (notes) {
+        agent.submitClarificationNotes(notes);
+        clarificationInput.value = '';
+      }
+    });
+
+    // Review Actions
+    btnAcceptDraft.addEventListener('click', () => agent.acceptDraft());
+    btnRejectDraft.addEventListener('click', () => agent.rejectDraft());
+    btnEditDraft.addEventListener('click', () => {
+      agent.setEditedDraft(draftBody.innerText.trim());
+      log('Draft updated from inline edits.');
+    });
+
+    // Preset Question Scenarios
+    btnPresetStandard.addEventListener('click', () => {
+      inputQuestion.value = 'Describe how you handled an accessibility challenge in a previous engineering project.';
+      log('Set question: Standard Accessibility (High RAG Confidence).');
+    });
+
+    btnPresetObscure.addEventListener('click', () => {
+      inputQuestion.value = 'Describe your experience inventing quantum patent algorithms for satellite navigation.';
+      log('Set question: Quantum / Obscure (Triggers Low Evidence & Clarification Loop).');
+    });
+
+    // Voice Interaction for Agent Flow
+    recognizer.onTranscript = ({ transcript, isFinal }) => {
+      if (!isFinal) return;
+      const lower = transcript.toLowerCase();
+      log(`Spoken: "${transcript}"`);
+
+      // Consent step
+      if (agent.currentStep === AgentFlowStep.AWAITING_CONSENT) {
+        if (lower.includes('yes') || lower.includes('sure') || lower.includes('draft')) {
+          agent.handleConsentResponse(true);
+        } else if (lower.includes('no') || lower.includes('skip') || lower.includes('cancel')) {
+          agent.handleConsentResponse(false);
+        }
+      }
+      // Review step
+      else if (agent.currentStep === AgentFlowStep.REVIEWING_DRAFT) {
+        if (lower.includes('accept') || lower.includes('insert') || lower.includes('confirm')) {
+          agent.acceptDraft();
+        } else if (lower.includes('reject') || lower.includes('discard') || lower.includes('cancel')) {
+          agent.rejectDraft();
+        } else if (lower.includes('edit')) {
+          agent.setEditedDraft(draftBody.innerText.trim());
+          synthesizer.speak('You can now type or edit your draft in the text box.');
+        }
+      }
+      // Clarification step
+      else if (agent.currentStep === AgentFlowStep.AWAITING_CLARIFICATION) {
+        clarificationInput.value = transcript;
+        agent.submitClarificationNotes(transcript);
+      }
+    };
+
+    btnMicToggle.addEventListener('click', () => {
+      if (recognizer.state === RecognitionState.LISTENING) {
+        recognizer.stop();
+      } else {
+        recognizer.start();
+      }
+    });
+
+    btnStopAudio.addEventListener('click', () => {
+      synthesizer.stop();
+      recognizer.stop();
+      log('Audio paused.');
+    });
+
+    // Keyboard Shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.altKey && (e.key === 'h' || e.key === 'H')) { e.preventDefault(); btnStartFlow.click(); }
+      else if (e.altKey && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); btnConsentYes.click(); }
+      else if (e.altKey && (e.key === 'n' || e.key === 'N')) { e.preventDefault(); btnConsentNo.click(); }
+      else if (e.altKey && (e.key === 'a' || e.key === 'A')) { e.preventDefault(); btnAcceptDraft.click(); }
+      else if (e.altKey && (e.key === 'x' || e.key === 'X')) { e.preventDefault(); btnRejectDraft.click(); }
+      else if (e.altKey && (e.key === 'm' || e.key === 'M')) { e.preventDefault(); btnMicToggle.click(); }
+      else if (e.key === 'Escape') { btnStopAudio.click(); }
+    });
+  </script>
+</body>
+</html>
