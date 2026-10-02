@@ -1,26 +1,51 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --color-navy-950: #0a0f1d;
+    --color-navy-900: #0f172a;
+    --color-navy-800: #1e293b;
+    --color-navy-700: #334155;
+    --color-teal-700: #0f766e;
+    --color-teal-600: #0d9488;
+    --color-teal-500: #14b8a6;
+    --color-teal-50: #f0fdfa;
+    --color-accent-emerald: #059669;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* High Visibility Focus Outlines for Keyboard Accessibility (WCAG 2.4.7 / 2.4.11) */
+  *:focus-visible {
+    outline: 3px solid #0f766e !important;
+    outline-offset: 3px !important;
+  }
+
+  body {
+    background-color: #f8fafc;
+    color: #0f172a;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Accessible Screen-Reader only utility */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Smooth scroll support */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Large click target minimum standard (44x44px for accessibility) */
+  .accessible-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
