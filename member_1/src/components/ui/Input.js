@@ -57,11 +57,12 @@ export const Input = React.forwardRef(
             aria-describedby={
               error ? errorId : helperText ? helperId : undefined
             }
+            suppressHydrationWarning
             className={cn(
-              "block w-full rounded-lg border-2 bg-white px-3.5 py-2.5 text-base text-slate-900 transition-colors placeholder:text-slate-400 min-h-[44px]",
+              "block w-full rounded-xl border-2 bg-white px-3.5 py-2.5 text-base text-[#18191D] transition-colors placeholder:text-slate-400 min-h-[44px]",
               error
                 ? "border-rose-500 focus:border-rose-600 bg-rose-50/20"
-                : "border-slate-300 focus:border-teal-600 hover:border-slate-400",
+                : "border-[#D5D5C8] focus:border-[#1F5FBF] hover:border-[#18191D]",
               leftIcon && "pl-10",
               rightIcon && "pr-10",
               className

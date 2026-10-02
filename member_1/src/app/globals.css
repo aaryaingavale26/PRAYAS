@@ -1,28 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --color-navy-950: #0a0f1d;
-    --color-navy-900: #0f172a;
-    --color-navy-800: #1e293b;
-    --color-navy-700: #334155;
-    --color-teal-700: #0f766e;
-    --color-teal-600: #0d9488;
-    --color-teal-500: #14b8a6;
-    --color-teal-50: #f0fdfa;
-    --color-accent-emerald: #059669;
-  }
+:root {
+  --color-cream: #FBFBEF;
+  --color-cream-card: #F3F3E3;
+  --color-cream-border: #E5E5D5;
+  --color-charcoal: #18191D;
+  --color-charcoal-muted: #4B4D56;
+  --color-blue-bright: #2F9BE0;
+  --color-blue-deep: #1F5FBF;
+  --color-blue-hover: #174ea6;
+  --color-card-dark: #1E1F24;
+  --color-card-dark-border: #2C2D35;
+  --color-stat-gray: #E2E2D6;
+  --font-display: 'Bricolage Grotesque', system-ui, -apple-system, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
 
-  /* High Visibility Focus Outlines for Keyboard Accessibility (WCAG 2.4.7 / 2.4.11) */
+body.lock {
+  overflow: hidden;
+  height: 100%;
+}
+
+@layer base {
+  /* High Visibility Focus Outlines for WCAG 2.2 AA (2.4.7 / 2.4.11) */
   *:focus-visible {
-    outline: 3px solid #0f766e !important;
+    outline: 3px solid #1F5FBF !important;
     outline-offset: 3px !important;
   }
 
+  html {
+    scroll-behavior: smooth;
+    background-color: #FBFBEF;
+    color: #18191D;
+  }
+
   body {
-    background-color: #f8fafc;
-    color: #0f172a;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    background-color: #FBFBEF;
+    color: #18191D;
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.04em;
+    font-feature-settings: "ss01", "ss02";
   }
 
   /* Accessible Screen-Reader only utility */
@@ -38,14 +62,190 @@
     border-width: 0;
   }
 
-  /* Smooth scroll support */
-  html {
-    scroll-behavior: smooth;
-  }
-
   /* Large click target minimum standard (44x44px for accessibility) */
   .accessible-target {
     min-height: 44px;
     min-width: 44px;
   }
 }
+
+/* Image 1 Design System Custom Utilities */
+.portfolio-header-strip {
+  border-bottom: 1px solid #E2E2D4;
+  padding: 8px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #646672;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.browser-window-frame {
+  background: #FFFFFF;
+  border: 1.5px solid #E2E2D4;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04);
+}
+
+.browser-window-header {
+  background: #F8F8EE;
+  border-bottom: 1.5px solid #E2E2D4;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.browser-window-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.folder-tab-header {
+  position: relative;
+  background: #2F9BE0;
+  color: #FFFFFF;
+  border-radius: 16px 16px 0 0;
+  padding: 12px 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tilted-charcoal-card {
+  background: #1E1F24;
+  color: #F8F8F0;
+  border-radius: 18px;
+  border: 1.5px solid #2C2D35;
+  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.22);
+  transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.25s ease;
+}
+
+.tilted-charcoal-card:hover {
+  transform: rotate(0deg) scale(1.02) !important;
+}
+
+.circular-stat-badge {
+  background: #E8E8DC;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+/* Reusable Image 1 Inner Page Components */
+.prayas-folder-container {
+  background: #2F9BE0;
+  border-radius: 24px;
+  padding: 24px;
+  color: #FFFFFF;
+  box-shadow: 0 12px 30px -8px rgba(47, 155, 224, 0.28);
+}
+
+.prayas-tab-btn {
+  background: #1F5FBF;
+  color: #FFFFFF;
+  padding: 8px 18px;
+  border-radius: 12px 12px 0 0;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.prayas-tab-btn.active {
+  background: #2F9BE0;
+  color: #FFFFFF;
+  box-shadow: 0 -4px 10px rgba(0,0,0,0.06);
+}
+
+.prayas-card-dark {
+  background: #1C1E22;
+  color: #F8F8F0;
+  border-radius: 20px;
+  border: 1.5px solid #2B2D34;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.18);
+}
+
+.prayas-card-cream {
+  background: #FFFFFF;
+  color: #18191D;
+  border-radius: 20px;
+  border: 1.5px solid #E2E2D4;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.04);
+}
+
+.prayas-input-field {
+  background: #FFFFFF;
+  border: 1.5px solid #D5D5C6;
+  border-radius: 12px;
+  padding: 10px 14px;
+  color: #18191D;
+  font-family: var(--font-body);
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+}
+
+.prayas-input-field:focus {
+  border-color: #1F5FBF;
+  box-shadow: 0 0 0 3px rgba(31, 95, 191, 0.2);
+  outline: none !important;
+}
+
+.prayas-btn-primary {
+  background: #2F9BE0;
+  color: #FFFFFF;
+  font-family: var(--font-display);
+  font-weight: 700;
+  border-radius: 12px;
+  padding: 10px 20px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.prayas-btn-primary:hover {
+  background: #1F5FBF;
+  transform: translateY(-1px);
+}
+
+.prayas-btn-dark {
+  background: #1C1E22;
+  color: #F8F8F0;
+  border: 1px solid #33363F;
+  font-family: var(--font-display);
+  font-weight: 700;
+  border-radius: 12px;
+  padding: 10px 20px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.prayas-btn-dark:hover {
+  background: #2B2D34;
+  transform: translateY(-1px);
+}
+

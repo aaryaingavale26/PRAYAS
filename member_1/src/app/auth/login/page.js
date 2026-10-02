@@ -6,9 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardFooter } from "@/components/ui/Card";
 import { 
-  Accessibility, 
   Lock, 
   Mail, 
   Eye, 
@@ -16,7 +14,8 @@ import {
   AlertCircle, 
   CheckCircle2, 
   Sparkles,
-  Loader2
+  Loader2,
+  ArrowRight
 } from "lucide-react";
 
 function LoginForm() {
@@ -67,14 +66,14 @@ function LoginForm() {
   };
 
   return (
-    <Card className="border-slate-200 shadow-lg">
-      <CardContent className="pt-6">
-        {/* Supabase Status Hint */}
+    <div className="bg-white rounded-3xl border border-[#E2E2D4] shadow-xl overflow-hidden">
+      <div className="p-6 sm:p-8">
+        {/* Status Hint */}
         {!isConfigured && (
-          <div className="mb-5 p-3 rounded-lg bg-teal-50/70 border border-teal-200 text-teal-900 text-xs flex items-start gap-2">
-            <Sparkles className="h-4 w-4 text-teal-700 shrink-0 mt-0.5" />
+          <div className="mb-5 p-3 rounded-2xl bg-[#EFF8FF] border border-[#BFDBFE] text-[#1E3A8A] text-xs flex items-start gap-2">
+            <Sparkles className="h-4 w-4 text-[#2F9BE0] shrink-0 mt-0.5" />
             <div>
-              <strong>Hackathon Demo Mode Active:</strong> You can enter any email/password, or use the 1-click Demo button below.
+              <strong>Demo Mode Ready:</strong> Enter any email and password, or click the 1-click Demo button below.
             </div>
           </div>
         )}
@@ -83,10 +82,10 @@ function LoginForm() {
         {error && (
           <div
             role="alert"
-            className="mb-5 p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-start gap-2.5 animate-in fade-in duration-150"
+            className="mb-5 p-3.5 rounded-2xl bg-[#FEE2E2] border border-[#FECACA] text-[#991B1B] text-sm flex items-start gap-2.5 animate-in fade-in duration-150"
           >
-            <AlertCircle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" aria-hidden="true" />
-            <span className="font-medium">{error}</span>
+            <AlertCircle className="h-5 w-5 text-[#DC2626] shrink-0 mt-0.5" aria-hidden="true" />
+            <span className="font-bold">{error}</span>
           </div>
         )}
 
@@ -94,10 +93,10 @@ function LoginForm() {
         {successMessage && (
           <div
             role="status"
-            className="mb-5 p-3.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-start gap-2.5 animate-in fade-in duration-150"
+            className="mb-5 p-3.5 rounded-2xl bg-[#D1FAE5] border border-[#A7F3D0] text-[#065F46] text-sm flex items-start gap-2.5 animate-in fade-in duration-150"
           >
-            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" aria-hidden="true" />
-            <span className="font-medium">{successMessage}</span>
+            <CheckCircle2 className="h-5 w-5 text-[#059669] shrink-0 mt-0.5" aria-hidden="true" />
+            <span className="font-bold">{successMessage}</span>
           </div>
         )}
 
@@ -129,7 +128,8 @@ function LoginForm() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="text-slate-400 hover:text-slate-700 pointer-events-auto p-1 focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
+                  suppressHydrationWarning
+                  className="text-[#646672] hover:text-[#18191D] pointer-events-auto p-1 focus-visible:ring-2 focus-visible:ring-[#2F9BE0] rounded-lg"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -144,18 +144,18 @@ function LoginForm() {
               variant="primary"
               size="md"
               isLoading={loading}
-              className="w-full bg-slate-900 hover:bg-slate-800 font-bold"
+              className="w-full font-black text-sm"
             >
-              Sign In
+              Sign In to Applicant Hub
             </Button>
           </div>
         </form>
 
         <div className="relative my-6 text-center">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200"></div>
+            <div className="w-full border-t border-[#E2E2D4]"></div>
           </div>
-          <span className="relative bg-white px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <span className="relative bg-white px-3 text-xs font-bold text-[#646672] uppercase tracking-wider">
             Or Instant Test
           </span>
         </div>
@@ -163,53 +163,53 @@ function LoginForm() {
         {/* Instant Demo Login Button */}
         <Button
           type="button"
-          variant="tealOutline"
+          variant="secondary"
           size="md"
           onClick={handleDemoLogin}
-          className="w-full font-bold flex items-center justify-center gap-2 border-2 border-teal-600 text-teal-800 hover:bg-teal-50"
+          className="w-full font-bold flex items-center justify-center gap-2"
         >
-          <Sparkles className="h-4 w-4 text-teal-600" />
-          <span>1-Click Demo Login (Applicant)</span>
+          <Sparkles className="h-4 w-4 text-white" />
+          <span>1-Click Demo Login (Candidate)</span>
         </Button>
-      </CardContent>
+      </div>
 
-      <CardFooter className="bg-slate-50/60 justify-center border-t border-slate-100 py-4">
-        <p className="text-sm text-slate-600">
+      <div className="bg-[#F8F8EE] justify-center border-t border-[#E2E2D4] p-4 text-center">
+        <p className="text-sm text-[#4B4D56]">
           Don&apos;t have an account yet?{" "}
           <Link
             href="/auth/signup"
-            className="font-bold text-teal-700 hover:text-teal-900 hover:underline focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
+            className="font-bold text-[#1F5FBF] hover:underline"
           >
             Create Account
           </Link>
         </p>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 }
 
 export default function LoginPage() {
   return (
-    <div className="min-h-[calc(100vh-160px)] flex items-center justify-center px-4 py-12 bg-slate-50">
+    <div className="min-h-[calc(100vh-160px)] flex items-center justify-center px-4 py-12 bg-[#FBFBEF]">
       <div className="max-w-md w-full">
         {/* Top Branding Pill */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-semibold mb-3">
-            <Accessibility className="h-3.5 w-3.5" />
-            <span>PRAYAS 3.0 Secure Access</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#CEEEFD] border border-[#BAE6FD] text-[#0284C7] text-xs font-bold mb-3">
+            <img src="/images/prayas-icon.png" alt="PRAYAS" className="h-4 w-4 object-contain" />
+            <span>PRAYAS 3.0 Secure Handoff</span>
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="font-display text-3xl font-black text-[#18191D] tracking-tight">
             Sign In to Your Account
           </h1>
-          <p className="text-sm text-slate-600 mt-1.5">
-            Access your Accessibility Passport and documents
+          <p className="text-sm text-[#4B4D56] mt-1.5">
+            Access your portable Accessibility Passport and documents
           </p>
         </div>
 
         <Suspense
           fallback={
-            <div className="p-8 bg-white rounded-xl border border-slate-200 flex justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+            <div className="p-8 bg-white rounded-3xl border border-[#E2E2D4] flex justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-[#1F5FBF]" />
             </div>
           }
         >

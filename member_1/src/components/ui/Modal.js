@@ -79,6 +79,7 @@ export function Modal({
           <button
             type="button"
             onClick={onClose}
+            suppressHydrationWarning
             className="rounded-lg p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-teal-600 transition-colors"
             aria-label="Close dialog"
           >

@@ -3,233 +3,199 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PRAYAS 3.0 Assistant</title>
+  <title>PRAYAS Assistant</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <header class="header">
-    <div class="logo-group">
-      <div class="logo-badge" aria-hidden="true">P</div>
-      <div>
-        <h1 class="title">PRAYAS 3.0</h1>
-        <p class="subtitle">Accessible Job Application Assistant</p>
-      </div>
-    </div>
-    <button type="button" id="popoutWindowBtn" class="btn-popout" title="Pop out into a side-by-side window that never closes when clicking the website">
-      &#x29C9; Pop Out Window
-    </button>
-  </header>
-
-  <main class="main-content">
-    <!-- Active Page Context -->
-    <section class="page-context" aria-label="Target Page">
-      <span class="context-label">Page:</span>
-      <span class="page-title" id="pageTitle">Detecting page...</span>
-    </section>
-
-    <!-- Backend Connection Bar (Stage 6) -->
-    <div class="backend-status-bar" aria-label="Backend Connection Status">
-      <span class="backend-dot status-dot-checking" id="backendDot" aria-hidden="true"></span>
-      <span class="backend-text" id="backendStatusText">Backend: Connecting...</span>
-      <button type="button" class="btn-icon" id="checkBackendBtn" title="Test FastAPI backend connection">&#x21bb;</button>
-    </div>
-
-    <!-- Status Card -->
-    <section class="card status-card" aria-labelledby="status-title">
-      <div class="status-row">
-        <span id="status-title" class="status-label">Assistant Status</span>
-        <div class="badges-row">
-          <span class="badge-mini badge-observer" title="Observes dynamically loaded fields">Live Observer</span>
-          <span class="status-pill status-active" id="extensionStatus">Active</span>
-        </div>
-      </div>
-      <p class="status-desc" id="statusMessage">Checking connection to active tab...</p>
-    </section>
-
-    <!-- Quick Metrics Display -->
-    <section class="card quick-stats" aria-label="Page Detection Summary">
-      <div class="stat-item">
-        <span class="stat-num" id="formCount">0</span>
-        <span class="stat-text">Forms</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-num" id="fieldCount">0</span>
-        <span class="stat-text">Fields</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-num stat-danger" id="issueCount">0</span>
-        <span class="stat-text">A11y Issues</span>
-      </div>
-    </section>
-
-    <!-- Navigation Tabs -->
-    <nav class="tabs-nav" aria-label="Panel Navigation">
-      <button type="button" class="tab-btn active" id="tabAutofillBtn" aria-controls="autofillSection">
-        Autofill (<span id="autofillTabCount">0</span>)
-      </button>
-      <button type="button" class="tab-btn" id="tabVoiceBtn" aria-controls="voiceSection">
-        Voice & Nav
-      </button>
-      <button type="button" class="tab-btn" id="tabAuditBtn" aria-controls="auditSection">
-        Scorecard (<span id="auditTabCount">0</span>)
-      </button>
-      <button type="button" class="tab-btn" id="tabFieldsBtn" aria-controls="fieldsSection">
-        Fields (<span id="fieldsTabCount">0</span>)
-      </button>
-    </nav>
-
-    <!-- Panel 1: Passport Autofill Preview (Stage 5) -->
-    <section class="card panel-section" id="autofillSection" aria-labelledby="autofillSectionTitle">
-      <div class="section-header">
-        <h2 id="autofillSectionTitle" class="section-title">Passport Autofill Preview</h2>
-        <span class="badge-mini badge-passport" id="passportStatusBadge">Passport Loaded</span>
-      </div>
-
-      <div class="passport-info-bar">
-        <span class="passport-user-icon">&#x1F464;</span>
-        <span class="passport-user-name" id="passportUserName">Priyanshu Sharma</span>
-        <span class="passport-tag" id="passportSourceTag">Cached</span>
-      </div>
-
-      <div class="safety-banner" role="note">
-        <strong>&#x1F6E1; Safety Guarantee:</strong> Review values below. PRAYAS will <em>never</em> submit applications automatically.
-      </div>
-
-      <div class="autofill-preview-list" id="autofillList" role="list">
-        <p class="empty-state">No matching fields found yet.</p>
-      </div>
-
-      <div class="autofill-actions">
-        <button type="button" id="confirmAutofillBtn" class="btn btn-primary" aria-label="Confirm and autofill matched fields" disabled>
-          &#x2728; Confirm & Autofill Selected (<span id="autofillSelectedCount">0</span>)
-        </button>
-      </div>
-    </section>
-
-    <!-- Panel 2: Voice & Assistive Navigation (Stage 8) -->
-    <section class="card panel-section hidden" id="voiceSection" aria-labelledby="voiceSectionTitle">
-      <div class="section-header">
-        <h2 id="voiceSectionTitle" class="section-title">Voice & Navigation Agent</h2>
-        <span class="badge-mini badge-voice">Speech API Ready</span>
-      </div>
-
-      <p class="status-desc" style="margin-bottom: 6px;">
-        Use voice commands or the buttons below to navigate and read form fields hands-free.
-      </p>
-
-      <!-- Command Buttons Grid -->
-      <div class="voice-btn-grid">
-        <button type="button" class="btn btn-secondary" id="voiceNextBtn" title="Shortcut: Alt + ArrowRight">
-          &#x25B6; Next Field
-        </button>
-        <button type="button" class="btn btn-secondary" id="voicePrevBtn" title="Shortcut: Alt + ArrowLeft">
-          &#x25C0; Prev Field
-        </button>
-        <button type="button" class="btn btn-primary" id="voiceReadBtn" style="grid-column: span 2;" title="Shortcut: Alt + Space">
-          &#x1F50A; Read Current Field Aloud
-        </button>
-      </div>
-
-      <!-- Semantic Jump Input -->
-      <div class="voice-jump-row">
-        <input type="text" id="voiceJumpInput" placeholder="Jump to field (e.g. email, phone)" aria-label="Jump to field name">
-        <button type="button" id="voiceJumpBtn" class="btn btn-secondary" style="flex-shrink: 0; padding: 6px 10px;">Focus</button>
-      </div>
-
-      <!-- Speech Announcement Box -->
-      <div class="voice-readout-card" aria-live="polite">
-        <span class="readout-label">&#x1F4E2; Active Announcement:</span>
-        <p class="readout-text" id="voiceAnnouncementText">Ready for navigation command.</p>
-      </div>
-
-      <div class="shortcut-tip">
-        <strong>Hardware Keys:</strong> <code>Alt+&rarr;</code> Next &bull; <code>Alt+&larr;</code> Prev &bull; <code>Alt+Space</code> Read
-      </div>
-    </section>
-
-    <!-- Panel 3: Accessibility Scorecard & Safe Improvements (Stage 3, 4 & 7) -->
-    <section class="card panel-section hidden" id="auditSection" aria-labelledby="auditSectionTitle">
-      <div class="section-header">
-        <h2 id="auditSectionTitle" class="section-title">Accessibility Scorecard</h2>
-        <div class="audit-summary-tags">
-          <span class="pill-definitive" id="definitiveBadge">0 Definitive</span>
-          <span class="pill-uncertain" id="uncertainBadge">0 Uncertain</span>
-          <span class="pill-repaired" id="repairedBadge">0 Repaired</span>
-        </div>
-      </div>
-
-      <div class="scorecard-summary-card">
-        <div class="scorecard-score-col">
-          <span class="score-number" id="scorecardHealthPercent">--%</span>
-          <span class="score-label">Health Score</span>
-        </div>
-        <div class="scorecard-metrics-col">
-          <div class="metric-row">
-            <span class="metric-label">Detected:</span>
-            <span class="metric-val" id="scorecardDetected">0</span>
+  
+  <div class="popup-container">
+    
+    <!-- MODE A: MAIN ASSISTANT PANEL (MATCHING IMAGE 3) -->
+    <div class="main-panel-view" id="mainPanelView">
+      
+      <!-- Header -->
+      <header class="assistant-header">
+        <div class="header-left">
+          <div class="mic-icon-box" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" x2="12" y1="19" y2="22"/>
+            </svg>
           </div>
-          <div class="metric-row">
-            <span class="metric-label">Repaired:</span>
-            <span class="metric-val text-success" id="scorecardFixed">0</span>
-          </div>
-          <div class="metric-row">
-            <span class="metric-label">Unresolved:</span>
-            <span class="metric-val text-danger" id="scorecardUnresolved">0</span>
+          <div class="header-v-divider"></div>
+          <h1 class="header-title">PRAYAS Assistant</h1>
+        </div>
+
+        <div class="header-right">
+          <div class="ready-pill" id="readyPill">
+            <span class="ready-dot"></span>
+            <span id="readyPillText">READY</span>
           </div>
         </div>
+      </header>
+
+      <!-- User Identity Strip (Shared Session A.1) -->
+      <div class="user-identity-strip" id="userIdentityStrip">
+        <span class="user-icon" aria-hidden="true">👤</span>
+        <span class="user-email-text" id="userEmailText">Checking login status...</span>
+        <a href="http://localhost:3000/auth/login" target="_blank" class="user-login-link" id="userLoginLink" style="display: none;">Log in</a>
       </div>
 
-      <div class="repair-controls">
-        <button type="button" id="applyFixesBtn" class="btn btn-repair" aria-label="Apply safe accessibility fixes">
-          &#x2714; Apply Safe Fixes
+      <!-- Status Message Box -->
+      <div class="status-msg-box" id="statusBox" role="status" aria-live="polite">
+        Ready. Tap Speak (Alt+M), press a shortcut, or type a command.
+      </div>
+
+      <!-- Controls Row: Tap & Speak + Stop -->
+      <div class="action-controls-row">
+        <button type="button" class="btn-tap-speak" id="btnTapSpeak" aria-label="Tap and Speak voice command (Alt+M)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" x2="12" y1="19" y2="22"/>
+          </svg>
+          <span>Tap &amp; Speak</span>
+          <span class="badge-shortcut">Alt+M</span>
         </button>
-        <button type="button" id="undoFixesBtn" class="btn btn-secondary" aria-label="Undo all applied accessibility improvements" disabled>
-          &#x21BA; Undo Fixes
+
+        <button type="button" class="btn-stop-audio" id="btnStopAudio" aria-label="Stop audio (Escape)">
+          <span style="font-size: 13px;">■</span>
+          <span>Stop</span>
+          <span class="badge-shortcut">Esc</span>
         </button>
       </div>
 
-      <div class="audit-list" id="auditList" role="list">
-        <p class="empty-state">No issues scanned yet.</p>
-      </div>
-
-      <div class="scorecard-consent-box">
-        <label class="consent-label">
-          <input type="checkbox" id="auditConsentCheckbox" checked>
-          <span>Share accessibility audit report to help improve portal accessibility.</span>
-        </label>
-        <div class="scorecard-action-row">
-          <button type="button" id="submitScorecardBtn" class="btn btn-primary" aria-label="Send accessibility scorecard to FastAPI backend">
-            &#x1F4E4; Send to Server
-          </button>
-          <button type="button" id="exportScorecardBtn" class="btn btn-secondary" aria-label="Export scorecard as JSON">
-            &#x1F4BE; Export JSON
-          </button>
+      <!-- Feature Button: Voice Call with Prayas.AI -->
+      <button type="button" class="btn-voice-call-trigger" id="btnStartVoiceCall" title="Start live guided voice call">
+        <div class="voice-call-btn-left">
+          <img src="prayas-avatar.png" alt="Prayas.AI" class="olivia-mini-avatar" onerror="this.style.display='none'" />
+          <span>Voice Call with Prayas.AI</span>
         </div>
-      </div>
-    </section>
-
-    <!-- Panel 4: Detected Fields Catalog (Stage 2) -->
-    <section class="card panel-section hidden" id="fieldsSection" aria-labelledby="fieldsSectionTitle">
-      <div class="section-header">
-        <h2 id="fieldsSectionTitle" class="section-title">Detected Fields Catalog</h2>
-        <span class="badge-count" id="fieldsCatalogCount">0 items</span>
-      </div>
-      <div class="fields-list" id="fieldsList" role="list">
-        <p class="empty-state">No fields scanned yet.</p>
-      </div>
-    </section>
-
-    <!-- Global Refresh -->
-    <div class="refresh-container">
-      <button type="button" id="scanBtn" class="btn btn-secondary" style="width: 100%;" aria-label="Refresh page scan">
-        &#x21bb; Refresh Form & Passport Sync
+        <span class="voice-call-badge">Interactive AI</span>
       </button>
+
+      <!-- 3x2 Grid of Shortcuts -->
+      <div class="shortcuts-grid">
+        <button type="button" class="shortcut-cell-btn" data-cmd="next field" id="scNext" aria-label="Next Field (Alt+N)">
+          <span class="sc-title">Next Field</span>
+          <span class="sc-badge">Alt+N</span>
+        </button>
+
+        <button type="button" class="shortcut-cell-btn" data-cmd="previous field" id="scPrev" aria-label="Previous Field (Alt+B)">
+          <span class="sc-title">Prev Field</span>
+          <span class="sc-badge">Alt+B</span>
+        </button>
+
+        <button type="button" class="shortcut-cell-btn" data-cmd="read question" id="scReadQ" aria-label="Read Question (Alt+R)">
+          <span class="sc-title">Read Q</span>
+          <span class="sc-badge">Alt+R</span>
+        </button>
+
+        <button type="button" class="shortcut-cell-btn" data-cmd="read this page" id="scPage" aria-label="Page Info (Alt+W)">
+          <span class="sc-title">Page Info</span>
+          <span class="sc-badge">Alt+W</span>
+        </button>
+
+        <button type="button" class="shortcut-cell-btn" data-cmd="fill my details" id="scAutofill" aria-label="Autofill (Alt+F)">
+          <span class="sc-title">Autofill</span>
+          <span class="sc-badge">Alt+F</span>
+        </button>
+
+        <button type="button" class="shortcut-cell-btn" data-cmd="ai draft" id="scDraft" aria-label="AI Draft (Alt+H)">
+          <span class="sc-title">AI Draft</span>
+          <span class="sc-badge">Alt+H</span>
+        </button>
+      </div>
+
+      <!-- Type Command Section -->
+      <form class="type-command-section" id="commandForm" onsubmit="event.preventDefault();">
+        <div class="type-command-header">
+          <span>TYPE COMMAND / ANSWER</span>
+          <div class="type-command-divider"></div>
+        </div>
+        <div class="type-command-input-row">
+          <input
+            type="text"
+            id="commandInput"
+            class="type-command-input"
+            placeholder="Type command or answer..."
+            aria-label="Type command input"
+            autocomplete="off"
+          />
+          <button type="submit" class="btn-run-command" id="btnRunCommand">Run</button>
+        </div>
+      </form>
+
     </div>
 
-    <footer class="footer-note">
-      <p>Team ByteShastra &bull; Stage 8 Voice Integration</p>
-    </footer>
-  </main>
+    <!-- MODE B: VOICE CALL SCREEN (MATCHING IMAGE 2 + IMAGE 4 BRANDING) -->
+    <div class="voice-call-screen-view" id="callScreenView">
+      
+      <!-- Call Top Bar -->
+      <div class="call-top-bar">
+        <button type="button" class="call-round-nav-btn" id="callBackBtn" title="Back to Assistant" aria-label="Back to assistant">
+          ←
+        </button>
+        <div class="call-center-meta">
+          <h2 class="call-assistant-name">Prayas.AI</h2>
+          <span class="call-running-timer" id="callTimer">00:00</span>
+        </div>
+        <button type="button" class="call-round-nav-btn" id="callMinBtn" title="Minimize" aria-label="Minimize">
+          —
+        </button>
+      </div>
+
+      <!-- Round Avatar with Pulse Animation & Image 4 Logo -->
+      <div class="call-avatar-container" id="callAvatarContainer">
+        <div class="call-avatar-ripple"></div>
+        <img src="prayas-avatar.png" alt="Prayas.AI Voice Assistant" class="call-avatar-img" />
+      </div>
+
+      <!-- Call Field Progress & Navigation (C.3 & C.4) -->
+      <div class="call-field-controls-row">
+        <button type="button" class="call-nav-step-btn" id="callPrevBtn" title="Previous field (Alt+B)" aria-label="Previous field">
+          ◀ Prev
+        </button>
+        <span class="call-progress-badge" id="callProgressBadge">Field 1 of --</span>
+        <button type="button" class="call-skip-btn" id="callSkipBtn" title="Skip this field (or say 'skip')" aria-label="Skip this field">
+          ⏭ Skip
+        </button>
+        <button type="button" class="call-nav-step-btn" id="callNextBtn" title="Next field (Alt+N)" aria-label="Next field">
+          Next ▶
+        </button>
+      </div>
+
+      <!-- Live Status Pill & Transcript Box -->
+      <div class="call-status-pill" id="callStatusPill">
+        ● CONNECTING...
+      </div>
+
+      <div class="call-live-transcript" id="callLiveTranscript" role="status" aria-live="polite">
+        Starting voice call with Prayas.AI. Preparing form fields...
+      </div>
+
+      <!-- Bottom Round Action Buttons -->
+      <div class="call-bottom-controls">
+        <button type="button" class="call-round-action-btn" id="callSpeakerBtn" title="Repeat Prompt / Toggle Speaker" aria-label="Repeat prompt or toggle speaker">
+          🔊
+        </button>
+
+        <button type="button" class="call-round-action-btn" id="callMicBtn" title="Toggle Mic" aria-label="Toggle mic">
+          🎤
+        </button>
+
+        <button type="button" class="call-round-action-btn call-end-btn" id="callEndBtn" title="End Voice Call" aria-label="End call">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-6-6 19.8 19.8 0 0 1-3.09-8.65A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/>
+            <line x1="22" x2="2" y1="2" y2="22"/>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+
+  </div>
 
   <script src="popup.js"></script>
 </body>

@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getPassport } from "@/lib/passportStorage";
 import { getDocuments } from "@/lib/documentService";
 import { getScorecardReports } from "@/lib/scorecardService";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import {
@@ -14,18 +14,15 @@ import {
   FileText,
   ShieldCheck,
   Zap,
-  ArrowRight,
   CheckCircle2,
   AlertTriangle,
   FileUp,
-  User,
   Sparkles,
-  ExternalLink,
-  Mic,
-  Keyboard,
-  Clock,
   RefreshCw,
-  FolderOpen
+  FolderOpen,
+  ArrowRight,
+  ChevronRight,
+  Check
 } from "lucide-react";
 
 export default function DashboardOverviewPage() {
@@ -87,8 +84,8 @@ export default function DashboardOverviewPage() {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <RefreshCw className="h-8 w-8 animate-spin text-teal-600" />
-          <p className="text-sm font-semibold text-slate-700">Loading your applicant overview...</p>
+          <RefreshCw className="h-8 w-8 animate-spin text-[#1F5FBF]" />
+          <p className="text-sm font-semibold text-[#18191D]">Loading your applicant overview...</p>
         </div>
       </div>
     );
@@ -96,34 +93,46 @@ export default function DashboardOverviewPage() {
 
   return (
     <div className="space-y-8">
-      {/* 1. WELCOME HERO BANNER */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-teal-950 rounded-2xl p-6 sm:p-8 text-white shadow-md">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <div className="max-w-2xl space-y-2">
+      
+      {/* 1. IMAGE 1 FOLDER-TAB SECTION HEADER */}
+      <div className="flex items-center justify-between">
+        <div className="folder-tab-header">
+          <span>APPLICANT OVERVIEW</span>
+          <ArrowRight className="h-4 w-4" />
+        </div>
+        <div className="text-xs font-bold text-[#646672] uppercase tracking-wider">
+          PRAYAS ACCESSIBILITY SUITE
+        </div>
+      </div>
+
+      {/* 2. WELCOME HERO BANNER (Image 1 Charcoal Rounded Card) */}
+      <div className="bg-[#18191D] border-2 border-[#2C2D35] rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
+          <div className="max-w-2xl space-y-3">
             <div className="flex items-center gap-2">
-              <Badge variant="teal" className="bg-teal-800 text-teal-100 border-teal-600 font-bold">
-                PRAYAS Applicant Hub
+              <Badge variant="blue" className="bg-[#2F9BE0] text-white border-[#1F5FBF]">
+                Verified Account
               </Badge>
-              <span className="text-xs text-slate-300">
-                Session: <strong>{user?.email || "Guest Demo"}</strong>
+              <span className="text-xs text-[#A0A2AB]">
+                Active Profile: <strong className="text-white">{user?.email || "Applicant"}</strong>
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            <h1 className="font-display text-3xl sm:text-4xl font-black tracking-tight text-white">
               Welcome back, {passport?.fullName || user?.user_metadata?.full_name || "Applicant"}!
             </h1>
-            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+            <p className="text-[#A0A2AB] text-sm sm:text-base leading-relaxed">
               Your portable Accessibility Passport and AI Document knowledge base are active. When you open any employer job application, PRAYAS assists you in real-time.
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
             <Link href="/passport">
-              <Button variant="secondary" size="md" className="w-full sm:w-auto font-bold bg-teal-600 hover:bg-teal-500">
+              <Button variant="secondary" size="md" className="w-full sm:w-auto">
                 Manage Passport
               </Button>
             </Link>
             <Link href="/documents">
-              <Button variant="outline" size="md" className="w-full sm:w-auto font-bold bg-white/10 hover:bg-white/20 text-white border-white/30">
+              <Button variant="outline" size="md" className="w-full sm:w-auto bg-[#25272E] text-white border-[#3F414E] hover:bg-[#32343E]">
                 Upload New Resume
               </Button>
             </Link>
@@ -131,173 +140,170 @@ export default function DashboardOverviewPage() {
         </div>
       </div>
 
-      {/* 2. STATS & STATUS METRIC CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric 1: Passport Status */}
-        <Card className="border-slate-200">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Passport Status</span>
-            <div className="h-8 w-8 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
-              <Sliders className="h-4 w-4" />
-            </div>
+      {/* 3. CIRCULAR GRAY STAT BADGES ROW (Image 1 requirement) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Stat 1: Completeness */}
+        <div className="bg-[#FFFFFF] border border-[#E2E2D4] rounded-2xl p-5 flex items-center gap-4 shadow-xs">
+          <div className="circular-stat-badge w-16 h-16 shrink-0 bg-[#E8E8DC]">
+            <span className="font-display text-lg font-black text-[#18191D]">
+              {isPassportConfigured ? "100%" : "60%"}
+            </span>
+            <span className="text-[9px] font-black text-[#646672] uppercase">READY</span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900">
-              {isPassportConfigured ? "100% Ready" : "Incomplete"}
+          <div className="min-w-0">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#646672] block">Passport</span>
+            <span className="font-display text-sm font-bold text-[#18191D] truncate block">
+              {isPassportConfigured ? "Configured" : "Incomplete"}
+            </span>
+            <span className="text-[11px] text-[#2F9BE0] font-bold block mt-0.5">
+              {activeAccommodationsCount} accommodations
             </span>
           </div>
-          <p className="text-xs text-slate-600 mt-1 flex items-center gap-1">
-            <CheckCircle2 className="h-3.5 w-3.5 text-teal-600" />
-            <span>{activeAccommodationsCount} active accommodations</span>
-          </p>
-        </Card>
+        </div>
 
-        {/* Metric 2: RAG Documents */}
-        <Card className="border-slate-200">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Indexed Documents</span>
-            <div className="h-8 w-8 rounded-lg bg-slate-100 border border-slate-300 flex items-center justify-center text-slate-800">
-              <FileText className="h-4 w-4" />
-            </div>
+        {/* Stat 2: Documents */}
+        <div className="bg-[#FFFFFF] border border-[#E2E2D4] rounded-2xl p-5 flex items-center gap-4 shadow-xs">
+          <div className="circular-stat-badge w-16 h-16 shrink-0 bg-[#E8E8DC]">
+            <span className="font-display text-xl font-black text-[#18191D]">
+              {documents.length}
+            </span>
+            <span className="text-[9px] font-black text-[#646672] uppercase">DOCS</span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900">{documents.length}</span>
-            <span className="text-xs text-slate-500 font-medium">Files</span>
+          <div className="min-w-0">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#646672] block">AI Knowledge</span>
+            <span className="font-display text-sm font-bold text-[#18191D] truncate block">
+              {documents.length} Indexed
+            </span>
+            <span className="text-[11px] text-[#065F46] font-bold block mt-0.5">
+              RAG Ready
+            </span>
           </div>
-          <p className="text-xs text-slate-600 mt-1 flex items-center gap-1">
-            <Sparkles className="h-3.5 w-3.5 text-teal-600" />
-            <span>RAG Context Active</span>
-          </p>
-        </Card>
+        </div>
 
-        {/* Metric 3: Remediation Fixes */}
-        <Card className="border-slate-200">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Auto-Remediated Fixes</span>
-            <div className="h-8 w-8 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700">
-              <ShieldCheck className="h-4 w-4" />
-            </div>
+        {/* Stat 3: Auto-Remediations */}
+        <div className="bg-[#FFFFFF] border border-[#E2E2D4] rounded-2xl p-5 flex items-center gap-4 shadow-xs">
+          <div className="circular-stat-badge w-16 h-16 shrink-0 bg-[#E8E8DC]">
+            <span className="font-display text-lg font-black text-[#18191D]">
+              {totalRemediated}
+            </span>
+            <span className="text-[9px] font-black text-[#646672] uppercase">FIXES</span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900">{totalRemediated}</span>
-            <span className="text-xs text-slate-500 font-medium">of {totalAuditedIssues} issues</span>
+          <div className="min-w-0">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#646672] block">Audit Engine</span>
+            <span className="font-display text-sm font-bold text-[#18191D] truncate block">
+              {totalAuditedIssues} Detected
+            </span>
+            <span className="text-[11px] text-[#065F46] font-bold block mt-0.5">
+              WCAG 2.2 Repaired
+            </span>
           </div>
-          <p className="text-xs text-emerald-700 font-semibold mt-1 flex items-center gap-1">
-            <span>92% Auto-Fix Success Rate</span>
-          </p>
-        </Card>
+        </div>
 
-        {/* Metric 4: Extension Sync */}
-        <Card className="border-slate-200">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Chrome Companion</span>
-            <div className="h-8 w-8 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700">
-              <Zap className="h-4 w-4" />
-            </div>
+        {/* Stat 4: Extension Companion */}
+        <div className="bg-[#FFFFFF] border border-[#E2E2D4] rounded-2xl p-5 flex items-center gap-4 shadow-xs">
+          <div className="circular-stat-badge w-16 h-16 shrink-0 bg-[#E8E8DC]">
+            <span className="font-display text-lg font-black text-[#2F9BE0]">
+              LIVE
+            </span>
+            <span className="text-[9px] font-black text-[#646672] uppercase">SYNC</span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900">Sync Active</span>
+          <div className="min-w-0">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#646672] block">Companion</span>
+            <span className="font-display text-sm font-bold text-[#18191D] truncate block">
+              Chrome Ext
+            </span>
+            <span className="text-[11px] text-[#2F9BE0] font-bold block mt-0.5">
+              Connected
+            </span>
           </div>
-          <p className="text-xs text-slate-600 mt-1 flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-teal-500 animate-pulse"></span>
-            <span>Listening on Career Portals</span>
-          </p>
-        </Card>
+        </div>
       </div>
 
-      {/* 3. MAIN DASHBOARD CONTENT (2 COLUMNS) */}
+      {/* 4. MAIN CONTENT GRID (2 COLUMNS) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* LEFT 2 COLS: Recent Reports & Uploaded Documents */}
+        {/* LEFT 2 COLS: Audits & Documents */}
         <div className="lg:col-span-2 space-y-8">
           
-          {/* Section A: Recent Accessibility Reports */}
-          <Card className="border-slate-200">
-            <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-xl font-bold flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-teal-700" />
-                  <span>Recent Accessibility Audits</span>
-                </CardTitle>
-                <CardDescription>
-                  Live scans conducted across employer job portals during your application sessions.
-                </CardDescription>
+          {/* Section A: Recent Audits */}
+          <div className="browser-window-frame">
+            <div className="browser-window-header justify-between">
+              <div className="flex items-center gap-2">
+                <span className="browser-window-dot bg-[#FF5F56]"></span>
+                <span className="browser-window-dot bg-[#FFBD2E]"></span>
+                <span className="browser-window-dot bg-[#27C93F]"></span>
+                <span className="text-xs font-bold text-[#646672] ml-2">Recent Accessibility Audits</span>
               </div>
-              <Link href="/scorecard">
-                <Button variant="ghost" size="sm" className="text-xs font-bold text-teal-700 hover:text-teal-900">
-                  View Full Scorecard &rarr;
-                </Button>
+              <Link href="/scorecard" className="text-xs font-bold text-[#1F5FBF] hover:underline">
+                Full Scorecard &rarr;
               </Link>
-            </CardHeader>
+            </div>
 
-            <CardContent className="p-0 divide-y divide-slate-100">
+            <div className="p-6">
               {reports.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 text-sm">
+                <div className="py-8 text-center text-[#646672] text-sm">
                   No audits recorded yet. Open a career site with the PRAYAS extension to view live reports.
                 </div>
               ) : (
-                reports.slice(0, 3).map((report) => (
-                  <div key={report.id} className="p-5 hover:bg-slate-50/70 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-slate-900 text-base">{report.portalName}</h4>
-                        <Badge variant="teal" className="text-[10px]">
-                          Score: {report.overallScore}/100
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-slate-500 truncate max-w-md">{report.url}</p>
-                      <div className="flex items-center gap-3 text-xs text-slate-600 pt-1">
-                        <span className="flex items-center gap-1 text-emerald-700 font-semibold">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          {report.verifiedImprovementsCount} Fixes Applied
-                        </span>
-                        {report.unresolvedIssuesCount > 0 && (
-                          <span className="flex items-center gap-1 text-amber-700 font-semibold">
-                            <AlertTriangle className="h-3.5 w-3.5" />
-                            {report.unresolvedIssuesCount} Unresolved
+                <div className="divide-y divide-[#E2E2D4]">
+                  {reports.slice(0, 3).map((report) => (
+                    <div key={report.id} className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-[#18191D] text-base">{report.portalName}</h4>
+                          <Badge variant="blue" className="text-[10px]">
+                            Score: {report.overallScore}/100
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-[#646672] truncate max-w-md">{report.url}</p>
+                        <div className="flex items-center gap-3 text-xs text-[#4B4D56] pt-1">
+                          <span className="flex items-center gap-1 text-[#065F46] font-bold">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            {report.verifiedImprovementsCount} Fixes Applied
                           </span>
-                        )}
+                          {report.unresolvedIssuesCount > 0 && (
+                            <span className="flex items-center gap-1 text-[#92400E] font-bold">
+                              <AlertTriangle className="h-3.5 w-3.5" />
+                              {report.unresolvedIssuesCount} Unresolved
+                            </span>
+                          )}
+                        </div>
                       </div>
+
+                      <Link href="/scorecard">
+                        <Button variant="outline" size="sm" className="whitespace-nowrap text-xs font-bold">
+                          Inspect Report
+                        </Button>
+                      </Link>
                     </div>
-
-                    <Link href="/scorecard">
-                      <Button variant="outline" size="sm" className="whitespace-nowrap text-xs font-semibold">
-                        Inspect Report
-                      </Button>
-                    </Link>
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Section B: Uploaded Documents Snapshot */}
-          <Card className="border-slate-200">
-            <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-xl font-bold flex items-center gap-2">
-                  <FolderOpen className="h-5 w-5 text-teal-700" />
-                  <span>Your Indexed Documents ({documents.length})</span>
-                </CardTitle>
-                <CardDescription>
-                  Documents used by PRAYAS AI to generate personalized answers.
-                </CardDescription>
+          {/* Section B: Uploaded Documents in Browser-Window Frame */}
+          <div className="browser-window-frame">
+            <div className="browser-window-header justify-between">
+              <div className="flex items-center gap-2">
+                <span className="browser-window-dot bg-[#FF5F56]"></span>
+                <span className="browser-window-dot bg-[#FFBD2E]"></span>
+                <span className="browser-window-dot bg-[#27C93F]"></span>
+                <span className="text-xs font-bold text-[#646672] ml-2">Document Knowledge Hub ({documents.length})</span>
               </div>
-              <Link href="/documents">
-                <Button variant="ghost" size="sm" className="text-xs font-bold text-teal-700 hover:text-teal-900">
-                  Manage Files &rarr;
-                </Button>
+              <Link href="/documents" className="text-xs font-bold text-[#1F5FBF] hover:underline">
+                Upload &rarr;
               </Link>
-            </CardHeader>
+            </div>
 
-            <CardContent className="p-5">
+            <div className="p-6">
               {documents.length === 0 ? (
                 <div className="text-center py-8">
-                  <FileUp className="h-8 w-8 mx-auto text-slate-400 mb-2" />
-                  <p className="text-sm font-semibold text-slate-700">No documents found</p>
-                  <p className="text-xs text-slate-500 mt-1 mb-4">Upload your resume to enable one-click AI answers.</p>
+                  <FileUp className="h-8 w-8 mx-auto text-[#A0A2AB] mb-2" />
+                  <p className="text-sm font-bold text-[#18191D]">No documents found</p>
+                  <p className="text-xs text-[#646672] mt-1 mb-4">Upload your resume to enable one-click AI answers.</p>
                   <Link href="/documents">
-                    <Button variant="primary" size="sm" className="bg-slate-900">
+                    <Button variant="primary" size="sm">
                       Upload Resume
                     </Button>
                   </Link>
@@ -307,106 +313,113 @@ export default function DashboardOverviewPage() {
                   {documents.slice(0, 3).map((doc) => (
                     <div
                       key={doc.id}
-                      className="p-3.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between gap-3 hover:border-slate-300 transition-colors"
+                      className="p-3.5 rounded-xl border border-[#E2E2D4] bg-[#FBFBEF] flex items-center justify-between gap-3 hover:border-[#2F9BE0] transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="h-9 w-9 rounded-lg bg-slate-900 text-teal-400 flex items-center justify-center shrink-0">
+                        <div className="h-9 w-9 rounded-xl bg-[#18191D] text-[#2F9BE0] flex items-center justify-center shrink-0">
                           <FileText className="h-4 w-4" />
                         </div>
                         <div className="truncate">
-                          <p className="text-sm font-bold text-slate-900 truncate">{doc.name}</p>
-                          <p className="text-xs text-slate-500">{new Date(doc.uploadedAt).toLocaleDateString()} • {doc.category.replace("_", " ").toUpperCase()}</p>
+                          <p className="text-sm font-bold text-[#18191D] truncate">{doc.name}</p>
+                          <p className="text-xs text-[#646672]">
+                            {new Date(doc.uploadedAt).toLocaleDateString()} • {doc.category?.replace("_", " ").toUpperCase()}
+                          </p>
                         </div>
                       </div>
-                      <Badge variant="teal" className="text-[10px] shrink-0">
+                      <Badge variant="blue" className="text-[10px] shrink-0">
                         AI Active
                       </Badge>
                     </div>
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
-        {/* RIGHT COLUMN: Passport Profile Summary & Extension Status */}
+        {/* RIGHT COLUMN: Dark Rounded Cards with Checkmarks (Image 1 Requirement) */}
         <div className="space-y-6">
           
-          {/* Active Passport Summary Card */}
-          <Card className="border-2 border-slate-900 bg-slate-900 text-white shadow-lg">
-            <CardHeader className="border-b border-slate-800 pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-lg bg-teal-600 flex items-center justify-center text-white font-bold text-xs">
-                    P3
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-white text-base">Active Passport</h3>
-                    <p className="text-[10px] text-teal-400 font-semibold uppercase">Profile Snapshot</p>
-                  </div>
+          {/* Active Passport Checklist Card */}
+          <div className="bg-[#18191D] border-2 border-[#2C2D35] rounded-3xl p-6 text-white shadow-xl">
+            <div className="flex items-center justify-between pb-4 border-b border-[#2C2D35] mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-xl bg-[#2F9BE0] text-white flex items-center justify-center font-black text-xs">
+                  P
                 </div>
-                <Link href="/passport">
-                  <Button variant="outline" size="sm" className="text-xs bg-transparent text-white border-slate-700 hover:bg-slate-800">
-                    Edit
-                  </Button>
-                </Link>
+                <div>
+                  <h3 className="font-display font-bold text-white text-base">Accessibility Passport</h3>
+                  <p className="text-[10px] text-[#2F9BE0] font-bold uppercase tracking-wider">Candidate Profile</p>
+                </div>
               </div>
-            </CardHeader>
+              <Link href="/passport">
+                <Button variant="outline" size="sm" className="text-xs bg-[#25272E] text-white border-[#3F414E] hover:bg-[#32343E]">
+                  Edit
+                </Button>
+              </Link>
+            </div>
 
-            <CardContent className="p-5 space-y-4 text-xs">
+            <div className="space-y-4 text-xs">
               <div>
-                <span className="text-slate-400 font-bold uppercase block text-[10px]">Preferred Interaction</span>
+                <span className="text-[#A0A2AB] font-bold uppercase block text-[10px]">Preferred Interaction</span>
                 <p className="font-bold text-white text-sm mt-0.5 capitalize">
-                  {passport?.preferredMethod?.replace("-", " ") || "Standard Mode"}
+                  {passport?.preferredMethod?.replace("-", " ") || "Standard Voice/Assist"}
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-                <div>
-                  <span className="text-slate-400 font-bold uppercase block text-[10px]">Text Scaling</span>
-                  <span className="font-semibold text-teal-300 capitalize">{passport?.textSize || "Normal"}</span>
+              {/* Checklist items with checkmarks */}
+              <div className="pt-3 border-t border-[#2C2D35] space-y-2.5">
+                <span className="text-[#A0A2AB] font-bold uppercase block text-[10px] mb-2">Enabled Accommodations</span>
+                
+                <div className="flex items-center gap-2.5 text-slate-200">
+                  <div className="h-5 w-5 rounded-full bg-[#2F9BE0] flex items-center justify-center text-white shrink-0">
+                    <Check className="h-3 w-3 stroke-[3]" />
+                  </div>
+                  <span className="font-semibold">Voice Dictation &amp; Read-Aloud</span>
                 </div>
-                <div>
-                  <span className="text-slate-400 font-bold uppercase block text-[10px]">Contrast Mode</span>
-                  <span className="font-semibold text-teal-300 capitalize">{passport?.contrast || "Standard"}</span>
+
+                <div className="flex items-center gap-2.5 text-slate-200">
+                  <div className="h-5 w-5 rounded-full bg-[#2F9BE0] flex items-center justify-center text-white shrink-0">
+                    <Check className="h-3 w-3 stroke-[3]" />
+                  </div>
+                  <span className="font-semibold">Automatic Field Autofill</span>
+                </div>
+
+                <div className="flex items-center gap-2.5 text-slate-200">
+                  <div className="h-5 w-5 rounded-full bg-[#2F9BE0] flex items-center justify-center text-white shrink-0">
+                    <Check className="h-3 w-3 stroke-[3]" />
+                  </div>
+                  <span className="font-semibold">Gemini RAG Essay Drafting</span>
+                </div>
+
+                <div className="flex items-center gap-2.5 text-slate-200">
+                  <div className="h-5 w-5 rounded-full bg-[#2F9BE0] flex items-center justify-center text-white shrink-0">
+                    <Check className="h-3 w-3 stroke-[3]" />
+                  </div>
+                  <span className="font-semibold">Lossless WCAG DOM Auto-Fixes</span>
                 </div>
               </div>
+            </div>
+          </div>
 
-              <div className="pt-2 border-t border-slate-800">
-                <span className="text-slate-400 font-bold uppercase block text-[10px] mb-1.5">Enabled Features</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {passport?.voiceAssist && (
-                    <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-200">Voice Dictate</span>
-                  )}
-                  {passport?.keyboardNav && (
-                    <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-200">Keyboard Traps Off</span>
-                  )}
-                  {passport?.simplifiedLanguage && (
-                    <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-200">Plain English</span>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Extension Guide Box */}
-          <div className="p-5 rounded-2xl bg-gradient-to-br from-teal-50 to-white border-2 border-teal-200 text-slate-900 shadow-xs space-y-3">
-            <div className="flex items-center gap-2 text-teal-900 font-bold text-sm">
-              <Zap className="h-4 w-4 text-teal-700" />
+          {/* Quick Extension Guide Box in Image 1 Cream/Blue styling */}
+          <div className="p-6 rounded-3xl bg-[#CEEEFD] border-2 border-[#BAE6FD] text-[#18191D] space-y-3">
+            <div className="flex items-center gap-2 font-display font-extrabold text-base text-[#0284C7]">
+              <Zap className="h-5 w-5 text-[#0284C7]" />
               <span>How PRAYAS Works on Job Sites</span>
             </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              When browsing LinkedIn, Indeed, or Taleo:
+            <p className="text-xs text-[#0369A1] leading-relaxed">
+              When applying on LinkedIn, Indeed, Taleo, or Greenhouse:
             </p>
-            <ol className="text-xs text-slate-700 space-y-1.5 list-decimal list-inside font-medium">
-              <li>Open any job application page</li>
-              <li>PRAYAS automatically injects speech buttons</li>
-              <li>Click &quot;AI Fill&quot; to auto-answer based on your resume</li>
-              <li>Submit with confidence and zero barriers!</li>
+            <ol className="text-xs text-[#18191D] space-y-2 list-decimal list-inside font-bold">
+              <li>Open any online job application page.</li>
+              <li>PRAYAS Companion automatically connects.</li>
+              <li>Click <strong>Autofill (Alt+F)</strong> to fill details from profile.</li>
+              <li>Use <strong>Voice Call</strong> with Prayas.AI to navigate hands-free.</li>
             </ol>
             <div className="pt-2">
               <Link href="/scorecard">
-                <Button variant="tealOutline" size="sm" className="w-full text-xs font-bold border-teal-600 text-teal-800">
+                <Button variant="primary" size="sm" className="w-full text-xs font-bold">
                   Explore Scorecard Remediations
                 </Button>
               </Link>

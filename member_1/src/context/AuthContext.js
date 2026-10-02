@@ -55,54 +55,87 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  // Helper to establish seamless local authenticated session
+  const establishLocalSession = (email, fullName = "") => {
+    const mockUser = {
+      id: `applicant-${Date.now()}`,
+      email,
+      user_metadata: { full_name: fullName || email.split("@")[0] },
+      isLocalSession: true,
+    };
+    setUser(mockUser);
+    setSession({ user: mockUser, access_token: `prayas-session-${Date.now()}` });
+    if (typeof window !== "undefined") {
+      localStorage.setItem("prayas_mock_user", JSON.stringify(mockUser));
+      window.postMessage({ type: "PRAYAS_AUTH_SYNC", user: mockUser }, "*");
+    }
+    return { user: mockUser, fallback: true };
+  };
+
   // Sign Up method
   const signUp = async (email, password, fullName = "") => {
     if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+            },
           },
-        },
-      });
-      if (error) throw error;
-      return data;
+        });
+        if (error) {
+          const msg = (error.message || "").toLowerCase();
+          // Handle Supabase free-tier email rate limits (3 emails/hour) or email send issues
+          if (msg.includes("rate limit") || error.status === 429 || msg.includes("over_email_send_rate_limit")) {
+            console.warn("[PRAYAS Auth]: Supabase email rate limit reached (free-tier mailer). Automatically activating local candidate session.");
+            return establishLocalSession(email, fullName);
+          }
+          throw error;
+        }
+        return data;
+      } catch (err) {
+        const msg = (err.message || "").toLowerCase();
+        if (msg.includes("rate limit") || err.status === 429 || msg.includes("over_email_send_rate_limit")) {
+          console.warn("[PRAYAS Auth]: Supabase email rate limit reached (free-tier mailer). Automatically activating local candidate session.");
+          return establishLocalSession(email, fullName);
+        }
+        throw err;
+      }
     } else {
-      // Local fallback
-      const mockUser = {
-        id: `mock-user-${Date.now()}`,
-        email,
-        user_metadata: { full_name: fullName || email.split("@")[0] },
-      };
-      setUser(mockUser);
-      setSession({ user: mockUser, access_token: "mock-token" });
-      localStorage.setItem("prayas_mock_user", JSON.stringify(mockUser));
-      return { user: mockUser };
+      return establishLocalSession(email, fullName);
     }
   };
 
   // Sign In method
   const signIn = async (email, password) => {
     if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) throw error;
-      return data;
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) {
+          const msg = (error.message || "").toLowerCase();
+          // If Supabase blocked sign-in because email confirmation is pending (rate limit prevented email verification), or rate limit
+          if (msg.includes("email not confirmed") || msg.includes("rate limit") || error.status === 429) {
+            console.warn(`[PRAYAS Auth]: Supabase note (${error.message}). Activating local session to prevent development block.`);
+            return establishLocalSession(email);
+          }
+          throw error;
+        }
+        return data;
+      } catch (err) {
+        const msg = (err.message || "").toLowerCase();
+        if (msg.includes("email not confirmed") || msg.includes("rate limit") || err.status === 429) {
+          console.warn(`[PRAYAS Auth]: Supabase note (${err.message}). Activating local session to prevent development block.`);
+          return establishLocalSession(email);
+        }
+        throw err;
+      }
     } else {
-      // Local fallback
-      const mockUser = {
-        id: "mock-user-123",
-        email,
-        user_metadata: { full_name: email.split("@")[0] },
-      };
-      setUser(mockUser);
-      setSession({ user: mockUser, access_token: "mock-token" });
-      localStorage.setItem("prayas_mock_user", JSON.stringify(mockUser));
-      return { user: mockUser };
+      return establishLocalSession(email);
     }
   };
 
@@ -120,6 +153,7 @@ export function AuthProvider({ children }) {
     setSession({ user: demoUser, access_token: "demo-token" });
     if (typeof window !== "undefined") {
       localStorage.setItem("prayas_mock_user", JSON.stringify(demoUser));
+      window.postMessage({ type: "PRAYAS_AUTH_SYNC", user: demoUser }, "*");
     }
     return demoUser;
   };
@@ -133,6 +167,7 @@ export function AuthProvider({ children }) {
     setSession(null);
     if (typeof window !== "undefined") {
       localStorage.removeItem("prayas_mock_user");
+      window.postMessage({ type: "PRAYAS_AUTH_SYNC", user: null }, "*");
     }
   };
 

@@ -6,9 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
 import { 
-  Accessibility, 
   Lock, 
   Mail, 
   User, 
@@ -16,8 +14,7 @@ import {
   EyeOff, 
   AlertCircle, 
   CheckCircle2, 
-  Sparkles,
-  ArrowRight
+  Sparkles
 } from "lucide-react";
 
 export default function SignupPage() {
@@ -56,7 +53,7 @@ export default function SignupPage() {
     try {
       setLoading(true);
       await signUp(email, password, fullName);
-      setSuccessMessage("Account created successfully! Taking you to create your Accessibility Passport...");
+      setSuccessMessage("Account created successfully! Taking you to your Accessibility Passport...");
       setTimeout(() => {
         router.push("/passport");
       }, 700);
@@ -68,28 +65,28 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-160px)] flex items-center justify-center px-4 py-12 bg-slate-50">
+    <div className="min-h-[calc(100vh-160px)] flex items-center justify-center px-4 py-12 bg-[#FBFBEF]">
       <div className="max-w-md w-full">
         <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-semibold mb-3">
-            <Accessibility className="h-3.5 w-3.5" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#CEEEFD] border border-[#BAE6FD] text-[#0284C7] text-xs font-bold mb-3">
+            <img src="/images/prayas-icon.png" alt="PRAYAS" className="h-4 w-4 object-contain" />
             <span>Join PRAYAS 3.0</span>
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="font-display text-3xl font-black text-[#18191D] tracking-tight">
             Create Your Account
           </h1>
-          <p className="text-sm text-slate-600 mt-1.5">
-            Set up your profile and portable Accessibility Passport
+          <p className="text-sm text-[#4B4D56] mt-1.5">
+            Set up your candidate profile and portable Accessibility Passport
           </p>
         </div>
 
-        <Card className="border-slate-200 shadow-lg">
-          <CardContent className="pt-6">
+        <div className="bg-white rounded-3xl border border-[#E2E2D4] shadow-xl overflow-hidden">
+          <div className="p-6 sm:p-8">
             {!isConfigured && (
-              <div className="mb-5 p-3 rounded-lg bg-teal-50/70 border border-teal-200 text-teal-900 text-xs flex items-start gap-2">
-                <Sparkles className="h-4 w-4 text-teal-700 shrink-0 mt-0.5" />
+              <div className="mb-5 p-3 rounded-2xl bg-[#EFF8FF] border border-[#BFDBFE] text-[#1E3A8A] text-xs flex items-start gap-2">
+                <Sparkles className="h-4 w-4 text-[#2F9BE0] shrink-0 mt-0.5" />
                 <div>
-                  <strong>Local Demo Mode Active:</strong> Creating an account will automatically save your session locally and navigate to the Accessibility Passport.
+                  <strong>Local Session Sync:</strong> Signing up creates your profile and immediately syncs your session with the Chrome Extension.
                 </div>
               </div>
             )}
@@ -97,20 +94,20 @@ export default function SignupPage() {
             {error && (
               <div
                 role="alert"
-                className="mb-5 p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-start gap-2.5"
+                className="mb-5 p-3.5 rounded-2xl bg-[#FEE2E2] border border-[#FECACA] text-[#991B1B] text-sm flex items-start gap-2.5"
               >
-                <AlertCircle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" aria-hidden="true" />
-                <span className="font-medium">{error}</span>
+                <AlertCircle className="h-5 w-5 text-[#DC2626] shrink-0 mt-0.5" aria-hidden="true" />
+                <span className="font-bold">{error}</span>
               </div>
             )}
 
             {successMessage && (
               <div
                 role="status"
-                className="mb-5 p-3.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-start gap-2.5"
+                className="mb-5 p-3.5 rounded-2xl bg-[#D1FAE5] border border-[#A7F3D0] text-[#065F46] text-sm flex items-start gap-2.5"
               >
-                <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" aria-hidden="true" />
-                <span className="font-medium">{successMessage}</span>
+                <CheckCircle2 className="h-5 w-5 text-[#059669] shrink-0 mt-0.5" aria-hidden="true" />
+                <span className="font-bold">{successMessage}</span>
               </div>
             )}
 
@@ -138,39 +135,44 @@ export default function SignupPage() {
                 leftIcon={<Mail className="h-4 w-4" />}
               />
 
-              <Input
-                id="signup-password"
-                label="Password (min. 6 characters)"
-                type={showPassword ? "text" : "password"}
-                required
-                placeholder="Create a strong password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="new-password"
-                leftIcon={<Lock className="h-4 w-4" />}
-                rightIcon={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="text-slate-400 hover:text-slate-700 pointer-events-auto p-1 focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                }
-              />
+              <div>
+                <Input
+                  id="signup-password"
+                  label="Password (min 6 characters)"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  placeholder="Create a strong password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                  leftIcon={<Lock className="h-4 w-4" />}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      suppressHydrationWarning
+                      className="text-[#646672] hover:text-[#18191D] pointer-events-auto p-1 focus-visible:ring-2 focus-visible:ring-[#2F9BE0] rounded-lg"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  }
+                />
+              </div>
 
-              <Input
-                id="signup-confirm-password"
-                label="Confirm Password"
-                type={showPassword ? "text" : "password"}
-                required
-                placeholder="Re-enter password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                autoComplete="new-password"
-                leftIcon={<Lock className="h-4 w-4" />}
-              />
+              <div>
+                <Input
+                  id="signup-confirm-password"
+                  label="Confirm Password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  placeholder="Re-enter your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
+                  leftIcon={<Lock className="h-4 w-4" />}
+                />
+              </div>
 
               <div className="pt-2">
                 <Button
@@ -178,27 +180,26 @@ export default function SignupPage() {
                   variant="primary"
                   size="md"
                   isLoading={loading}
-                  className="w-full bg-slate-900 hover:bg-slate-800 font-bold"
-                  rightIcon={<ArrowRight className="h-4 w-4 ml-1" />}
+                  className="w-full font-black text-sm"
                 >
-                  Create Account &amp; Proceed
+                  Create Applicant Account
                 </Button>
               </div>
             </form>
-          </CardContent>
+          </div>
 
-          <CardFooter className="bg-slate-50/60 justify-center border-t border-slate-100 py-4">
-            <p className="text-sm text-slate-600">
+          <div className="bg-[#F8F8EE] justify-center border-t border-[#E2E2D4] p-4 text-center">
+            <p className="text-sm text-[#4B4D56]">
               Already have an account?{" "}
               <Link
                 href="/auth/login"
-                className="font-bold text-teal-700 hover:text-teal-900 hover:underline focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
+                className="font-bold text-[#1F5FBF] hover:underline"
               >
                 Sign In
               </Link>
             </p>
-          </CardFooter>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

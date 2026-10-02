@@ -71,15 +71,25 @@ export async function uploadDocument(file, category = "resume", onProgress) {
 
   // 2. Try FastAPI Backend if available
   let backendResponse = null;
+  let activeUserId = null;
+  try {
+    const rawUser = typeof window !== "undefined" ? localStorage.getItem("prayas_mock_user") : null;
+    if (rawUser) {
+      activeUserId = JSON.parse(rawUser)?.id;
+    }
+  } catch (e) {}
+
   try {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("category", category);
+    if (activeUserId) {
+      formData.append("user_id", activeUserId);
+    }
 
     const res = await fetch(`${API_BASE_URL}/api/documents/upload`, {
       method: "POST",
       body: formData,
-      // Note: Do not set Content-Type header manually when sending FormData
     });
 
     if (res.ok) {
@@ -97,16 +107,18 @@ export async function uploadDocument(file, category = "resume", onProgress) {
     sizeBytes: file.size,
     uploadedAt: new Date().toISOString(),
     status: "indexed",
+    userId: activeUserId || "anonymous",
     summary: backendResponse?.summary || `Uploaded document (${file.name}) indexed by PRAYAS RAG engine. Available for automatic form answer generation.`,
     skills: backendResponse?.skills || ["Extracted by PRAYAS AI Engine"],
   };
 
-  // 4. Save to local storage
+  // 4. Save to local storage & sync with extension
   const currentDocs = await getDocuments();
   const updatedDocs = [newDoc, ...currentDocs];
   if (typeof window !== "undefined") {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedDocs));
     window.dispatchEvent(new CustomEvent("prayas-documents-updated", { detail: updatedDocs }));
+    window.postMessage({ type: "PRAYAS_DOCUMENTS_SYNC", documents: updatedDocs, userId: activeUserId }, "*");
   }
 
   return newDoc;

@@ -1,0 +1,57 @@
+services:
+  # -------------------------------------------------------------
+  # 1. PRAYAS Backend: FastAPI + Gemini RAG + Supabase
+  # -------------------------------------------------------------
+  - type: web
+    name: prayas-backend
+    env: python
+    rootDir: prayas-backend
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: GEMINI_EMBEDDING_MODEL
+        value: gemini-embedding-001
+
+  # -------------------------------------------------------------
+  # 2. PRAYAS Frontend: Next.js 16 Web Application
+  # -------------------------------------------------------------
+  - type: web
+    name: prayas-frontend
+    env: node
+    rootDir: member_1
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    plan: free
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20.12.0
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: prayas-backend
+          property: host
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false

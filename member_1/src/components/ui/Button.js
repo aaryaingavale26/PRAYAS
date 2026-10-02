@@ -23,17 +23,21 @@ export const Button = React.forwardRef(
 
     const variants = {
       primary:
-        "bg-slate-900 text-white hover:bg-slate-800 active:bg-slate-950 shadow-sm border border-slate-900",
+        "bg-[#18191D] text-[#FBFBEF] hover:bg-[#2C2D35] active:bg-[#101114] shadow-sm border border-[#18191D] rounded-xl font-bold",
       secondary:
-        "bg-teal-700 text-white hover:bg-teal-800 active:bg-teal-900 shadow-sm border border-teal-700",
+        "bg-[#2F9BE0] text-white hover:bg-[#1F5FBF] active:bg-[#174ea6] shadow-sm border border-[#2F9BE0] rounded-xl font-bold",
+      blue:
+        "bg-[#2F9BE0] text-white hover:bg-[#1F5FBF] active:bg-[#174ea6] shadow-sm border border-[#2F9BE0] rounded-xl font-bold",
+      deepBlue:
+        "bg-[#1F5FBF] text-white hover:bg-[#174ea6] shadow-sm border border-[#1F5FBF] rounded-xl font-bold",
       outline:
-        "bg-white text-slate-800 border-2 border-slate-300 hover:bg-slate-50 hover:border-slate-800",
+        "bg-[#FBFBEF] text-[#18191D] border-2 border-[#D5D5C8] hover:bg-[#F3F3E3] hover:border-[#18191D] rounded-xl font-bold",
       tealOutline:
-        "bg-white text-teal-800 border-2 border-teal-600 hover:bg-teal-50",
+        "bg-white text-[#1F5FBF] border-2 border-[#2F9BE0] hover:bg-[#D4F1FE] rounded-xl font-bold",
       ghost:
-        "bg-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-900",
+        "bg-transparent text-[#18191D] hover:bg-[#E8E8DC] hover:text-[#18191D] rounded-xl font-bold",
       danger:
-        "bg-rose-700 text-white hover:bg-rose-800 active:bg-rose-900 shadow-sm border border-rose-700",
+        "bg-[#DC2626] text-white hover:bg-[#B91C1C] shadow-sm rounded-xl font-bold",
     };
 
     const sizes = {
@@ -48,6 +52,7 @@ export const Button = React.forwardRef(
         type={type}
         disabled={disabled || isLoading}
         aria-busy={isLoading}
+        suppressHydrationWarning
         className={cn(baseStyles, variants[variant], sizes[size], className)}
         {...props}
       >

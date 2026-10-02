@@ -12,17 +12,12 @@ import {
   AlertTriangle,
   CheckCircle2,
   AlertCircle,
-  Zap,
   ExternalLink,
   Filter,
-  Search,
-  Sparkles,
-  Download,
-  Info,
   Code,
-  FileCheck2,
-  Send,
-  Eye
+  ArrowRight,
+  Sparkles,
+  RefreshCw
 } from "lucide-react";
 
 export default function ScorecardPage() {
@@ -94,7 +89,7 @@ export default function ScorecardPage() {
             severity: "Medium",
             wcagCriterion: "1.4.3 Contrast (Minimum)",
             status: "Auto-Remediated by PRAYAS",
-            fixApplied: "Applied High Contrast Navy/Teal CSS override (Ratio 9.8:1).",
+            fixApplied: "Applied High Contrast CSS override (Contrast ratio 9.8:1).",
           },
           {
             id: `iss-${Date.now()}-3`,
@@ -132,34 +127,37 @@ export default function ScorecardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 min-h-[60vh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm font-semibold text-slate-700">Loading Accessibility Scorecard...</p>
+          <RefreshCw className="h-8 w-8 animate-spin text-[#1F5FBF]" />
+          <p className="text-sm font-semibold text-[#18191D]">Loading Accessibility Scorecard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
-      {/* 1. HEADER & MISSION */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-200">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 w-full space-y-8">
+      
+      {/* 1. IMAGE 1 FOLDER-TAB SECTION HEADER */}
+      <div className="flex items-center justify-between">
+        <div className="folder-tab-header">
+          <span>ACCESSIBILITY SCORECARD</span>
+          <ArrowRight className="h-4 w-4" />
+        </div>
+        <div className="text-xs font-bold text-[#646672] uppercase tracking-wider">
+          WCAG 2.2 AA VERIFICATION
+        </div>
+      </div>
+
+      {/* Header and Live URL Audit Trigger */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-[#E2E2D4]">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-bold">
-              <ShieldCheck className="h-3.5 w-3.5 text-teal-700" />
-              <span>WCAG 2.2 Real-Time Auditor</span>
-            </span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-semibold">
-              Live Extension Feed &amp; Sample Data
-            </span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-            Accessibility Scorecard
+          <h1 className="font-display text-3xl sm:text-4xl font-black text-[#18191D] tracking-tight">
+            Employer Audit &amp; Remediations
           </h1>
-          <p className="mt-1 text-slate-600 text-base max-w-2xl leading-relaxed">
-            Inspect detected accessibility barriers on job application websites, verified real-time fixes applied by the PRAYAS companion, and employer compliance scores.
+          <p className="mt-1 text-[#4B4D56] text-sm sm:text-base max-w-2xl leading-relaxed">
+            Inspect detected accessibility barriers across job application websites, verified real-time fixes applied by the PRAYAS companion, and employer compliance scores.
           </p>
         </div>
 
@@ -175,10 +173,10 @@ export default function ScorecardPage() {
           />
           <Button
             type="submit"
-            variant="primary"
+            variant="secondary"
             size="sm"
             isLoading={isAuditing}
-            className="bg-slate-900 whitespace-nowrap text-xs font-bold"
+            className="whitespace-nowrap text-xs font-bold"
           >
             Audit URL
           </Button>
@@ -186,8 +184,8 @@ export default function ScorecardPage() {
       </div>
 
       {/* 2. PORTAL SELECTOR TABS */}
-      <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-slate-100">
-        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mr-2 flex items-center gap-1">
+      <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-[#E2E2D4]">
+        <span className="text-xs font-bold text-[#646672] uppercase tracking-wider mr-2 flex items-center gap-1">
           <Filter className="h-3.5 w-3.5" />
           <span>Audited Portals:</span>
         </span>
@@ -196,10 +194,11 @@ export default function ScorecardPage() {
             key={report.id}
             type="button"
             onClick={() => setSelectedReportId(report.id)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+            suppressHydrationWarning
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
               selectedReportId === report.id
-                ? "bg-slate-900 text-white border-slate-900 shadow-xs"
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                ? "bg-[#18191D] text-white border-[#18191D] shadow-sm"
+                : "bg-white text-[#18191D] border-[#E2E2D4] hover:bg-[#F3F3E3]"
             }`}
           >
             {report.portalName} ({report.overallScore}/100)
@@ -209,71 +208,92 @@ export default function ScorecardPage() {
 
       {activeReport && (
         <>
-          {/* 3. CORE METRICS ROW */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* 3. CIRCULAR GRAY STAT BADGES ROW (Image 1 Requirement) */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             
             {/* Metric 1: Overall Score */}
-            <Card className="border-slate-200 bg-gradient-to-br from-white to-teal-50/40">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Overall Compliance Score</span>
-              <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-3xl sm:text-4xl font-black text-slate-900">
+            <div className="bg-[#FFFFFF] border border-[#E2E2D4] rounded-2xl p-5 flex items-center gap-4 shadow-xs">
+              <div className="circular-stat-badge w-18 h-18 shrink-0 bg-[#E8E8DC]">
+                <span className="font-display text-2xl font-black text-[#18191D]">
                   {activeReport.overallScore}
                 </span>
-                <span className="text-sm font-bold text-slate-500">/ 100</span>
+                <span className="text-[9px] font-black text-[#646672] uppercase">SCORE</span>
               </div>
-              <Badge variant="teal" className="mt-2 text-[10px]">
-                {activeReport.wcagLevel}
-              </Badge>
-            </Card>
+              <div className="min-w-0">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#646672] block">Compliance</span>
+                <span className="font-display text-sm font-bold text-[#18191D] truncate block">
+                  {activeReport.wcagLevel}
+                </span>
+                <span className="text-[11px] text-[#0284C7] font-bold block mt-0.5">
+                  Live Audit
+                </span>
+              </div>
+            </div>
 
             {/* Metric 2: Detected Issues */}
-            <Card className="border-slate-200">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Detected Issues</span>
-              <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-3xl sm:text-4xl font-black text-slate-900">
+            <div className="bg-[#FFFFFF] border border-[#E2E2D4] rounded-2xl p-5 flex items-center gap-4 shadow-xs">
+              <div className="circular-stat-badge w-18 h-18 shrink-0 bg-[#E8E8DC]">
+                <span className="font-display text-2xl font-black text-[#92400E]">
                   {activeReport.detectedIssuesCount}
                 </span>
-                <span className="text-xs text-slate-500 font-medium">Barriers</span>
+                <span className="text-[9px] font-black text-[#646672] uppercase">BARRIERS</span>
               </div>
-              <p className="text-xs text-slate-500 mt-2">Scanned on candidate load</p>
-            </Card>
+              <div className="min-w-0">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#646672] block">Detected</span>
+                <span className="font-display text-sm font-bold text-[#18191D] truncate block">
+                  {activeReport.detectedIssuesCount} Issues
+                </span>
+                <span className="text-[11px] text-[#92400E] font-bold block mt-0.5">
+                  Scanned on Load
+                </span>
+              </div>
+            </div>
 
-            {/* Metric 3: Verified Improvements */}
-            <Card className="border-slate-200 bg-emerald-50/30">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">Verified Improvements</span>
-              <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-3xl sm:text-4xl font-black text-emerald-700">
+            {/* Metric 3: Verified Auto-Fixes */}
+            <div className="bg-[#FFFFFF] border border-[#E2E2D4] rounded-2xl p-5 flex items-center gap-4 shadow-xs">
+              <div className="circular-stat-badge w-18 h-18 shrink-0 bg-[#E8E8DC]">
+                <span className="font-display text-2xl font-black text-[#065F46]">
                   {activeReport.verifiedImprovementsCount}
                 </span>
-                <span className="text-xs text-emerald-700 font-bold">Auto-Fixed</span>
+                <span className="text-[9px] font-black text-[#646672] uppercase">FIXED</span>
               </div>
-              <p className="text-xs text-emerald-800 mt-2 font-semibold flex items-center gap-1">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                <span>PRAYAS Remediated</span>
-              </p>
-            </Card>
+              <div className="min-w-0">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#646672] block">Repairs</span>
+                <span className="font-display text-sm font-bold text-[#18191D] truncate block">
+                  {activeReport.verifiedImprovementsCount} Repaired
+                </span>
+                <span className="text-[11px] text-[#065F46] font-bold block mt-0.5">
+                  Lossless DOM Fix
+                </span>
+              </div>
+            </div>
 
-            {/* Metric 4: Unresolved Issues */}
-            <Card className="border-slate-200 bg-amber-50/30">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-900">Unresolved Barriers</span>
-              <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-3xl sm:text-4xl font-black text-amber-700">
+            {/* Metric 4: Unresolved Barriers */}
+            <div className="bg-[#FFFFFF] border border-[#E2E2D4] rounded-2xl p-5 flex items-center gap-4 shadow-xs">
+              <div className="circular-stat-badge w-18 h-18 shrink-0 bg-[#E8E8DC]">
+                <span className="font-display text-2xl font-black text-[#18191D]">
                   {activeReport.unresolvedIssuesCount}
                 </span>
-                <span className="text-xs text-amber-700 font-bold">Action Needed</span>
+                <span className="text-[9px] font-black text-[#646672] uppercase">PENDING</span>
               </div>
-              <p className="text-xs text-amber-900 mt-2 font-semibold">
-                {activeReport.unresolvedIssuesCount > 0 ? "Requires employer accommodation" : "Zero blocking barriers"}
-              </p>
-            </Card>
+              <div className="min-w-0">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#646672] block">Unresolved</span>
+                <span className="font-display text-sm font-bold text-[#18191D] truncate block">
+                  {activeReport.unresolvedIssuesCount === 0 ? "Zero Blockers" : "Needs Note"}
+                </span>
+                <span className="text-[11px] text-[#2F9BE0] font-bold block mt-0.5">
+                  Employer Gate
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* 4. ACTIVE PORTAL DETAILS & REMEDIATION SUMMARY */}
-          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          {/* 4. ACTIVE PORTAL DETAILS & REMEDIATION PROGRESS */}
+          <div className="p-6 rounded-3xl bg-white border border-[#E2E2D4] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-slate-900">{activeReport.portalName}</h2>
-                <span className="text-xs text-slate-500">
+                <h2 className="font-display text-lg font-bold text-[#18191D]">{activeReport.portalName}</h2>
+                <span className="text-xs text-[#646672]">
                   • Audited on {new Date(activeReport.auditDate).toLocaleDateString()}
                 </span>
               </div>
@@ -281,18 +301,18 @@ export default function ScorecardPage() {
                 href={activeReport.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-teal-700 hover:text-teal-900 font-medium inline-flex items-center gap-1"
+                className="text-xs text-[#1F5FBF] hover:underline font-bold inline-flex items-center gap-1"
               >
                 <span>{activeReport.url}</span>
                 <ExternalLink className="h-3 w-3" />
               </a>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-600">Remediation Progress:</span>
-              <div className="w-36 bg-slate-200 rounded-full h-3 overflow-hidden">
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold text-[#646672]">Remediation Progress:</span>
+              <div className="w-36 bg-[#E2E2D4] rounded-full h-3 overflow-hidden">
                 <div
-                  className="bg-emerald-600 h-3 rounded-full"
+                  className="bg-[#2F9BE0] h-3 rounded-full"
                   style={{
                     width: `${
                       activeReport.detectedIssuesCount > 0
@@ -302,7 +322,7 @@ export default function ScorecardPage() {
                   }}
                 />
               </div>
-              <span className="text-xs font-black text-slate-900">
+              <span className="text-xs font-black text-[#18191D]">
                 {activeReport.detectedIssuesCount > 0
                   ? Math.round((activeReport.verifiedImprovementsCount / activeReport.detectedIssuesCount) * 100)
                   : 100}
@@ -311,52 +331,47 @@ export default function ScorecardPage() {
             </div>
           </div>
 
-          {/* 5. DETAILED ISSUES TABLE */}
-          <Card className="border-slate-200 overflow-hidden">
-            <CardHeader className="border-b border-slate-100 bg-slate-50/60 pb-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <CardTitle className="text-xl font-bold flex items-center gap-2">
-                    <Code className="h-5 w-5 text-teal-700" />
-                    <span>Detected Issues &amp; Remediations</span>
-                  </CardTitle>
-                  <CardDescription>
-                    Granular breakdown of form elements, WCAG violations, and auto-applied script fixes.
-                  </CardDescription>
-                </div>
-
-                {/* Filter Controls */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="bg-white border-2 border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800"
-                    aria-label="Filter issues by status"
-                  >
-                    <option value="all">All Statuses</option>
-                    <option value="remediated">Auto-Remediated Only</option>
-                    <option value="unresolved">Unresolved Only</option>
-                  </select>
-
-                  <select
-                    value={filterSeverity}
-                    onChange={(e) => setFilterSeverity(e.target.value)}
-                    className="bg-white border-2 border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800"
-                    aria-label="Filter issues by severity"
-                  >
-                    <option value="all">All Severities</option>
-                    <option value="critical">Critical</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
+          {/* 5. DETAILED ISSUES TABLE IN BROWSER-WINDOW FRAME */}
+          <div className="browser-window-frame">
+            <div className="browser-window-header justify-between">
+              <div className="flex items-center gap-2">
+                <span className="browser-window-dot bg-[#FF5F56]"></span>
+                <span className="browser-window-dot bg-[#FFBD2E]"></span>
+                <span className="browser-window-dot bg-[#27C93F]"></span>
+                <span className="text-xs font-bold text-[#646672] ml-2">Detected Issues &amp; Remediations</span>
               </div>
-            </CardHeader>
 
-            <CardContent className="p-0 divide-y divide-slate-100">
+              {/* Filter Controls */}
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="bg-white border-2 border-[#D5D5C8] rounded-xl px-2.5 py-1 text-xs font-bold text-[#18191D]"
+                  aria-label="Filter issues by status"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="remediated">Auto-Remediated Only</option>
+                  <option value="unresolved">Unresolved Only</option>
+                </select>
+
+                <select
+                  value={filterSeverity}
+                  onChange={(e) => setFilterSeverity(e.target.value)}
+                  className="bg-white border-2 border-[#D5D5C8] rounded-xl px-2.5 py-1 text-xs font-bold text-[#18191D]"
+                  aria-label="Filter issues by severity"
+                >
+                  <option value="all">All Severities</option>
+                  <option value="critical">Critical</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="divide-y divide-[#E2E2D4]">
               {filteredIssues.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 text-sm">
+                <div className="p-8 text-center text-[#646672] text-sm">
                   No issues match the selected filter criteria.
                 </div>
               ) : (
@@ -365,28 +380,28 @@ export default function ScorecardPage() {
                   return (
                     <div
                       key={issue.id}
-                      className="p-5 hover:bg-slate-50/50 transition-colors flex flex-col space-y-3"
+                      className="p-5 hover:bg-[#FBFBEF] transition-colors flex flex-col space-y-3"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-bold text-slate-900 text-base">{issue.type}</span>
+                            <span className="font-bold text-[#18191D] text-base">{issue.type}</span>
                             <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
                                 issue.severity === "Critical"
-                                  ? "bg-rose-100 text-rose-800 border border-rose-200"
+                                  ? "bg-[#FEE2E2] text-[#991B1B] border border-[#FECACA]"
                                   : issue.severity === "High"
-                                  ? "bg-amber-100 text-amber-900 border border-amber-200"
-                                  : "bg-slate-100 text-slate-800 border border-slate-200"
+                                  ? "bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]"
+                                  : "bg-[#E8E8DC] text-[#18191D] border border-[#D5D5C8]"
                               }`}
                             >
                               {issue.severity}
                             </span>
-                            <span className="text-xs font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                            <span className="text-xs font-mono bg-[#F3F3E3] text-[#18191D] px-2 py-0.5 rounded-md border border-[#E2E2D4]">
                               {issue.element}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-500 font-semibold">
+                          <p className="text-xs text-[#646672] font-semibold">
                             WCAG Criterion: {issue.wcagCriterion}
                           </p>
                         </div>
@@ -394,13 +409,13 @@ export default function ScorecardPage() {
                         {/* Status Badge */}
                         <div>
                           {isRemediated ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
-                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#D1FAE5] text-[#065F46] border border-[#A7F3D0]">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-[#059669]" />
                               <span>Auto-Remediated by PRAYAS</span>
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-900 border border-amber-300">
-                              <AlertTriangle className="h-3.5 w-3.5 text-amber-700" />
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]">
+                              <AlertTriangle className="h-3.5 w-3.5 text-[#B45309]" />
                               <span>Unresolved (Action Needed)</span>
                             </span>
                           )}
@@ -409,10 +424,10 @@ export default function ScorecardPage() {
 
                       {/* Fix Description Box */}
                       <div
-                        className={`p-3.5 rounded-xl border text-xs leading-relaxed flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                        className={`p-3.5 rounded-2xl border text-xs leading-relaxed flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                           isRemediated
-                            ? "bg-emerald-50/40 border-emerald-200 text-emerald-950"
-                            : "bg-amber-50/50 border-amber-200 text-amber-950"
+                            ? "bg-[#EFF6FF] border-[#BFDBFE] text-[#1E3A8A]"
+                            : "bg-[#FEF3C7] border-[#FDE68A] text-[#92400E]"
                         }`}
                       >
                         <div>
@@ -424,13 +439,13 @@ export default function ScorecardPage() {
 
                         {!isRemediated && (
                           <Button
-                            variant="tealOutline"
+                            variant="secondary"
                             size="sm"
                             onClick={() => {
                               setSelectedUnresolvedIssue(issue);
                               setIsLetterModalOpen(true);
                             }}
-                            className="text-xs font-bold shrink-0 border-teal-700 text-teal-800 hover:bg-teal-50"
+                            className="text-xs font-bold shrink-0"
                           >
                             Generate Accommodation Note
                           </Button>
@@ -440,8 +455,8 @@ export default function ScorecardPage() {
                   );
                 })
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </>
       )}
 
@@ -454,7 +469,7 @@ export default function ScorecardPage() {
         maxWidth="max-w-xl"
       >
         <div className="space-y-4">
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 whitespace-pre-wrap leading-relaxed">
+          <div className="p-4 bg-[#FBFBEF] border border-[#E2E2D4] rounded-2xl text-xs font-mono text-[#18191D] whitespace-pre-wrap leading-relaxed">
 {`Dear Hiring Team,
 
 I am currently applying for a position at your organization through your online career portal. During the application process, I encountered an accessibility barrier with the following element:
@@ -487,7 +502,6 @@ Candidate`}
                 alert("Accommodation note copied to clipboard!");
                 setIsLetterModalOpen(false);
               }}
-              className="bg-slate-900 font-bold"
             >
               Copy to Clipboard
             </Button>

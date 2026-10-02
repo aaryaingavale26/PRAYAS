@@ -3,12 +3,13 @@ import { cn } from "@/lib/utils";
 
 export function Badge({ children, variant = "default", className, ...props }) {
   const variants = {
-    default: "bg-slate-100 text-slate-800 border-slate-200",
-    primary: "bg-slate-900 text-white border-slate-900",
-    teal: "bg-teal-50 text-teal-800 border-teal-300 font-semibold",
-    success: "bg-emerald-50 text-emerald-800 border-emerald-300 font-semibold",
-    warning: "bg-amber-50 text-amber-900 border-amber-300 font-semibold",
-    danger: "bg-rose-50 text-rose-800 border-rose-300 font-semibold",
+    default: "bg-[#E8E8DC] text-[#18191D] border-[#D5D5C8] font-bold",
+    primary: "bg-[#18191D] text-[#FBFBEF] border-[#18191D] font-bold",
+    teal: "bg-[#CEEEFD] text-[#0284C7] border-[#BAE6FD] font-bold",
+    blue: "bg-[#CEEEFD] text-[#0284C7] border-[#BAE6FD] font-bold",
+    success: "bg-[#D1FAE5] text-[#065F46] border-[#A7F3D0] font-bold",
+    warning: "bg-[#FEF3C7] text-[#92400E] border-[#FDE68A] font-bold",
+    danger: "bg-[#FEE2E2] text-[#991B1B] border-[#FECACA] font-bold",
   };
 
   return (

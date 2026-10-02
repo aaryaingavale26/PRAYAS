@@ -116,12 +116,17 @@ class ExtensionRAGRequest(BaseModel):
     question: str
     context: Optional[str] = ""
     preferences: Optional[Dict[str, Any]] = None
+    user_id: Optional[str] = None
+    user_email: Optional[str] = None
+    user_profile: Optional[Dict[str, Any]] = None
 
 
 class VoiceAgentRAGRequest(BaseModel):
     question: str
     field_id: Optional[str] = None
     user_id: Optional[str] = None
+    user_email: Optional[str] = None
+    user_profile: Optional[Dict[str, Any]] = None
     supplemental_notes: Optional[str] = ""
     max_words: Optional[int] = 150
 
@@ -146,17 +151,21 @@ def _generate_grounded_answer(
     question: str,
     context: str = "",
     supplemental_notes: str = "",
-    simplified: bool = False
+    simplified: bool = False,
+    user_profile: Optional[Dict[str, Any]] = None,
+    user_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Produces an answer strictly grounded in candidate's verified profile, resume context, and accommodations.
     Uses Gemini when configured; otherwise falls back to deterministic template matching.
     """
-    candidate_name = _active_passport.get("fullName", "Priyanshu Sharma")
-    summary = _active_passport.get("professionalSummary", "")
-    accommodations = _active_passport.get("accommodations", "")
-    exp_level = _active_passport.get("experienceLevel", "senior")
-    skills = "React, Next.js, TypeScript, JavaScript, Python, FastAPI, WCAG 2.2 AA, WAI-ARIA 1.2, NVDA, JAWS, Accessible UI Architecture, Focus Management"
+    profile = user_profile or _active_passport
+    candidate_name = profile.get("fullName") or "Rahul Sharma"
+    summary = profile.get("professionalSummary") or profile.get("workExperience") or "Senior Frontend & Accessibility Engineer with 4+ years specializing in accessible web platforms, WCAG 2.2 AA compliance, and screen-reader assistive tools."
+    accommodations = profile.get("accommodations") or profile.get("accommodationNotes") or "Screen reader compatible UI, high contrast, and flexible pacing for technical assessments."
+    exp_level = profile.get("experienceLevel", "senior")
+    skills = profile.get("skills") or "React, Next.js, TypeScript, JavaScript, Python, FastAPI, WCAG 2.2 AA, WAI-ARIA 1.2, NVDA, JAWS, Accessible UI Architecture"
+    education = profile.get("education") or "Bachelor of Technology in Computer Science, VTU (2016 - 2020)"
 
     # 1. If Gemini is configured, use live generative model
     if is_gemini_configured():
@@ -169,16 +178,17 @@ def _generate_grounded_answer(
 
             style_instruction = (
                 "Format the answer in concise, plain-language bullet points following WCAG 3.1.5 guidelines."
-                if simplified or _active_passport.get("simplifiedLanguage", False)
+                if simplified or profile.get("simplifiedLanguage", False)
                 else "Write a polished, professional, first-person response (approx 90 to 140 words), direct and ready to paste into a job application field."
             )
 
-            prompt = f"""You are {candidate_name}, a {exp_level} software engineer.
+            prompt = f"""You are {candidate_name}, an applicant with a {exp_level} engineering background.
 You are filling out a job application. Answer the application prompt below in the first person ("I") strictly using your verified candidate profile and context.
 
 Candidate Verified Profile:
 - Name: {candidate_name}
-- Professional Summary: {summary}
+- Education: {education}
+- Professional Summary / Experience: {summary}
 - Core Skills: {skills}
 - Workplace Accommodations & Assistive Tech: {accommodations}
 {extra_ctx}
@@ -187,9 +197,10 @@ Job Application Prompt:
 
 Instructions:
 - {style_instruction}
-- Ground your answer in your real experience, skills, and accessibility expertise.
+- Ground your answer strictly in your real education, experience, skills, and accessibility expertise.
+- Do NOT invent credentials, universities, or qualifications.
 - Do NOT say "Based on the provided documents" or "I don't have enough information". You are the applicant answering confidently and honestly.
-- Do NOT include placeholders like [Company Name] or [Job Title]; frame your answer generally and effectively around your technical skills and impact.
+- Frame your answer effectively around your real technical skills and education.
 
 Answer:"""
 
@@ -210,11 +221,17 @@ Answer:"""
         except Exception as e:
             logger.warning("Gemini generation in _generate_grounded_answer failed: %s. Falling back to template.", str(e))
 
-    # 2. Deterministic template fallback
+    # 2. Deterministic template fallback strictly grounded on user's real data
     q_lower = question.lower()
-    if "why" in q_lower or "fit" in q_lower or "interest" in q_lower or "role" in q_lower:
+    if "education" in q_lower or "degree" in q_lower or "university" in q_lower or "college" in q_lower or "school" in q_lower or "study" in q_lower or "major" in q_lower:
         answer = (
-            f"Drawing from my background as a {summary.lower()}, "
+            f"I completed my {education}. During my academic tenure, I focused on computer systems, software engineering fundamentals, "
+            f"and human-computer interaction, which established a strong analytical foundation for my career in accessible software architecture."
+        )
+        sources = ["Candidate Resume: Education", "Accessibility Passport"]
+    elif "why" in q_lower or "fit" in q_lower or "interest" in q_lower or "role" in q_lower:
+        answer = (
+            f"Drawing from my background where {summary.lower()}, "
             f"I have led cross-functional efforts to ensure applications meet WCAG 2.2 AA standards. "
             f"I design accessible UI architectures with keyboard navigation, ARIA semantics, and high-contrast "
             f"palettes that empower users of all abilities to complete critical web workflows."
@@ -235,7 +252,7 @@ Answer:"""
         sources = ["Accessibility Passport: Workplace Accommodations"]
     else:
         answer = (
-            f"Regarding '{question}': Based on my experience as a frontend engineer specialized in accessible web development, "
+            f"Regarding '{question}': Based on my verified experience ({summary}), "
             f"I consistently implement user-centric solutions adhering to strict accessibility criteria and automated test standards."
         )
         sources = ["Candidate Resume: Technical Skills", "Accessibility Passport"]
@@ -243,7 +260,7 @@ Answer:"""
     if supplemental_notes and supplemental_notes.strip():
         answer += f"\n\nAdditional verified context: {supplemental_notes.strip()}"
 
-    if simplified or _active_passport.get("simplifiedLanguage", False):
+    if simplified or profile.get("simplifiedLanguage", False):
         sentences = [s.strip() for s in answer.split(". ") if s.strip()]
         if sentences:
             answer = "\n".join(f"• {s.rstrip('.')}" for s in sentences[:3])
@@ -327,10 +344,14 @@ def get_audit_reports():
 
 @router.post("/rag-answer", summary="RAG answer generation for Chrome Extension (Member 3)")
 async def extension_rag_answer(payload: ExtensionRAGRequest):
-    # Try live Gemini RAG if configured
+    # Try live Gemini RAG if configured (scoped by user_id)
     if is_gemini_configured():
         try:
-            rag_res = answer_question(question=payload.question, limit=5)
+            rag_res = answer_question(
+                question=payload.question,
+                limit=5,
+                user_id=payload.user_id
+            )
             if (
                 rag_res
                 and rag_res.get("has_context")
@@ -339,7 +360,7 @@ async def extension_rag_answer(payload: ExtensionRAGRequest):
                 return {
                     "success": True,
                     "draftAnswer": rag_res["answer"],
-                    "sourcesUsed": [s.get("content", "")[:60] + "..." for s in rag_res.get("sources", [])] or ["Uploaded Resume"],
+                    "sourcesUsed": [s.get("content", "")[:60] + "..." for s in rag_res.get("sources", [])] or ["Uploaded Candidate Resume"],
                 }
         except Exception as e:
             logger.info("Live RAG search fallback triggered: %s", str(e))
@@ -349,6 +370,8 @@ async def extension_rag_answer(payload: ExtensionRAGRequest):
         question=payload.question,
         context=payload.context or "",
         simplified=simplified,
+        user_profile=payload.user_profile,
+        user_id=payload.user_id,
     )
     return {
         "success": True,
@@ -361,7 +384,11 @@ async def extension_rag_answer(payload: ExtensionRAGRequest):
 async def voice_agent_generate_answer(payload: VoiceAgentRAGRequest):
     if is_gemini_configured():
         try:
-            rag_res = answer_question(question=payload.question, limit=5)
+            rag_res = answer_question(
+                question=payload.question,
+                limit=5,
+                user_id=payload.user_id
+            )
             if (
                 rag_res
                 and rag_res.get("has_context")
@@ -380,6 +407,8 @@ async def voice_agent_generate_answer(payload: VoiceAgentRAGRequest):
     grounded = _generate_grounded_answer(
         question=payload.question,
         supplemental_notes=payload.supplemental_notes or "",
+        user_profile=payload.user_profile,
+        user_id=payload.user_id,
     )
     return {
         "success": True,

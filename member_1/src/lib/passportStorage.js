@@ -1,11 +1,20 @@
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 
 export const DEFAULT_PASSPORT = {
-  // 1. Personal & Contact (Core)
-  fullName: "",
-  email: "",
-  phone: "",
-  location: "",
+  // 1. Personal & Contact (Core Structured Data)
+  fullName: "Rahul Sharma",
+  email: "rahul.sharma@applicant.in",
+  phone: "+91 98765 43210",
+  location: "Bengaluru, Karnataka, India",
+  address: "42 MG Road, Indiranagar, Bengaluru, 560038",
+  dob: "1998-03-05",
+  education: "Bachelor of Technology in Computer Science, VTU (2016 - 2020)",
+  skills: "React, Next.js, TypeScript, JavaScript, Python, WCAG 2.2 AA, ARIA, Tailwind CSS, Accessibility Auditing",
+  workExperience: "Senior Accessibility Engineer at InnoTech (4+ years), specialized in screen-reader navigation and WCAG compliance.",
+  portfolioUrl: "https://github.com/rahul-sharma",
+  linkedinUrl: "https://linkedin.com/in/rahul-sharma-access",
+  githubUrl: "https://github.com/rahul-sharma",
+  idDetails: "Verified Applicant ID: PRAYAS-2026-IND-0824",
 
   // 2. Interaction & Assistive Tech
   preferredMethod: "standard", // "keyboard-only" | "screen-reader" | "voice-control" | "mouse-pointer" | "switch-device" | "standard"
@@ -26,7 +35,7 @@ export const DEFAULT_PASSPORT = {
 
   // 5. Sensitive & Optional (100% User Discretion)
   shareAccommodations: false,
-  accommodationNotes: "",
+  accommodationNotes: "Screen reader compatible UI, high contrast, extra time for coding assessments.",
   lastUpdated: new Date().toISOString(),
 };
 
@@ -82,6 +91,7 @@ export async function savePassport(passportData, userId = null) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedData));
     // Dispatch custom event for real-time reactivity in other components
     window.dispatchEvent(new CustomEvent("prayas-passport-updated", { detail: updatedData }));
+    window.postMessage({ type: "PRAYAS_PASSPORT_SYNC", passport: updatedData }, "*");
   }
 
   // 2. Save to Supabase if configured

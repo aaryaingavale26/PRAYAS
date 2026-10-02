@@ -34,10 +34,11 @@ export function Toggle({
         role="switch"
         aria-checked={checked}
         disabled={disabled}
+        suppressHydrationWarning
         onClick={() => onChange && onChange(!checked)}
         className={cn(
-          "relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-teal-600 disabled:cursor-not-allowed disabled:opacity-50",
-          checked ? "bg-teal-700" : "bg-slate-300"
+          "relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#2F9BE0] disabled:cursor-not-allowed disabled:opacity-50",
+          checked ? "bg-[#1F5FBF]" : "bg-[#D5D5C8]"
         )}
       >
         <span className="sr-only">{label}</span>

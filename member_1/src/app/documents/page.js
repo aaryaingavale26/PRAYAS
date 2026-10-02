@@ -6,8 +6,6 @@ import {
   uploadDocument,
   deleteDocument,
   formatBytes,
-  ALLOWED_EXTENSIONS,
-  MAX_FILE_SIZE_BYTES,
 } from "@/lib/documentService";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -20,12 +18,11 @@ import {
   CheckCircle2,
   AlertCircle,
   Eye,
-  FileCheck,
   Sparkles,
-  Bot,
-  Plus,
   RefreshCw,
-  FolderOpen
+  FolderOpen,
+  ArrowRight,
+  Plus
 } from "lucide-react";
 
 export default function DocumentHubPage() {
@@ -77,11 +74,10 @@ export default function DocumentHubPage() {
       setUploading(true);
       setUploadProgress(25);
 
-      // Simulate step progress for user feedback
       const timer1 = setTimeout(() => setUploadProgress(65), 300);
       const timer2 = setTimeout(() => setUploadProgress(90), 600);
 
-      const newDoc = await uploadDocument(file, category);
+      await uploadDocument(file, category);
       
       clearTimeout(timer1);
       clearTimeout(timer2);
@@ -90,9 +86,8 @@ export default function DocumentHubPage() {
       // Refresh list
       const updated = await getDocuments();
       setDocuments(updated);
-      setSuccessMessage(`"${file.name}" uploaded & indexed successfully for AI answer generation!`);
+      setSuccessMessage(`"${file.name}" uploaded & parsed for AI answer drafting!`);
 
-      // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -153,7 +148,7 @@ export default function DocumentHubPage() {
       case "resume":
         return <Badge variant="primary">Resume / CV</Badge>;
       case "cover_letter":
-        return <Badge variant="teal">Cover Letter</Badge>;
+        return <Badge variant="blue">Cover Letter</Badge>;
       case "portfolio":
         return <Badge variant="warning">Portfolio / Projects</Badge>;
       default:
@@ -162,26 +157,34 @@ export default function DocumentHubPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      {/* Title & Hub Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 pb-6 border-b border-slate-200">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 w-full space-y-8">
+      
+      {/* 1. IMAGE 1 FOLDER-TAB SECTION HEADER */}
+      <div className="flex items-center justify-between">
+        <div className="folder-tab-header">
+          <span>DOCUMENT HUB</span>
+          <ArrowRight className="h-4 w-4" />
+        </div>
+        <div className="text-xs font-bold text-[#646672] uppercase tracking-wider">
+          AI KNOWLEDGE BASE
+        </div>
+      </div>
+
+      {/* Top Banner */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-[#E2E2D4]">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-bold mb-2">
-            <Bot className="h-3.5 w-3.5 text-teal-700" />
-            <span>PRAYAS RAG Intelligence</span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-            Document Hub
+          <h1 className="font-display text-3xl sm:text-4xl font-black text-[#18191D] tracking-tight">
+            Document Intelligence &amp; Resume RAG
           </h1>
-          <p className="mt-1 text-slate-600 text-base max-w-2xl leading-relaxed">
-            Upload your resumes, cover letters, and project summaries. PRAYAS synthesizes accurate, accessible answers when filling tedious job application questionnaires.
+          <p className="mt-1 text-[#4B4D56] text-sm sm:text-base max-w-2xl leading-relaxed">
+            Upload your resumes, cover letters, and portfolio write-ups. PRAYAS creates grounded, truthful answers when you encounter open-ended application questions.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <Badge variant="teal" className="px-3 py-1.5 text-xs font-semibold">
-            <CheckCircle2 className="h-3.5 w-3.5 text-teal-700" />
-            <span>RAG Engine Ready</span>
+          <Badge variant="blue" className="px-3 py-1.5 text-xs font-bold">
+            <CheckCircle2 className="h-3.5 w-3.5 text-[#0284C7]" />
+            <span>RAG Engine Active</span>
           </Badge>
         </div>
       </div>
@@ -190,16 +193,17 @@ export default function DocumentHubPage() {
       {successMessage && (
         <div
           role="status"
-          className="mb-8 p-4 rounded-xl bg-emerald-50 border-2 border-emerald-300 text-emerald-900 text-base flex items-center justify-between shadow-sm animate-in fade-in duration-150"
+          className="p-4 rounded-2xl bg-[#D1FAE5] border-2 border-[#A7F3D0] text-[#065F46] text-sm flex items-center justify-between shadow-xs animate-in fade-in duration-150"
         >
           <div className="flex items-center gap-3">
-            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" aria-hidden="true" />
-            <span className="font-semibold">{successMessage}</span>
+            <CheckCircle2 className="h-5 w-5 text-[#059669] shrink-0" aria-hidden="true" />
+            <span className="font-bold">{successMessage}</span>
           </div>
           <button
             type="button"
             onClick={() => setSuccessMessage("")}
-            className="text-xs font-bold text-emerald-800 hover:text-emerald-950 p-1 rounded"
+            suppressHydrationWarning
+            className="text-xs font-bold text-[#065F46] hover:underline p-1 cursor-pointer"
           >
             Dismiss
           </button>
@@ -209,57 +213,52 @@ export default function DocumentHubPage() {
       {errorMessage && (
         <div
           role="alert"
-          className="mb-8 p-4 rounded-xl bg-rose-50 border-2 border-rose-300 text-rose-900 text-base flex items-center justify-between shadow-sm animate-in fade-in duration-150"
+          className="p-4 rounded-2xl bg-[#FEE2E2] border-2 border-[#FECACA] text-[#991B1B] text-sm flex items-center justify-between shadow-xs animate-in fade-in duration-150"
         >
           <div className="flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-rose-600 shrink-0" aria-hidden="true" />
-            <span className="font-semibold">{errorMessage}</span>
+            <AlertCircle className="h-5 w-5 text-[#DC2626] shrink-0" aria-hidden="true" />
+            <span className="font-bold">{errorMessage}</span>
           </div>
           <button
             type="button"
             onClick={() => setErrorMessage("")}
-            className="text-xs font-bold text-rose-800 hover:text-rose-950 p-1 rounded"
+            suppressHydrationWarning
+            className="text-xs font-bold text-[#991B1B] hover:underline p-1 cursor-pointer"
           >
             Dismiss
           </button>
         </div>
       )}
 
-      {/* 1. UPLOAD INTERFACE CARD */}
-      <Card className="mb-10 border-slate-200 shadow-sm overflow-hidden">
-        <CardHeader className="bg-slate-50/70 border-b border-slate-100">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <CardTitle className="text-xl font-bold flex items-center gap-2">
-                <UploadCloud className="h-5 w-5 text-teal-700" />
-                <span>Upload New Document</span>
-              </CardTitle>
-              <CardDescription>
-                Supported Formats: PDF, DOCX, DOC, TXT (Max 10MB)
-              </CardDescription>
-            </div>
-
-            {/* Document Category Selector */}
-            <div className="flex items-center gap-2">
-              <label htmlFor="doc-category" className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                Document Type:
-              </label>
-              <select
-                id="doc-category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="bg-white border-2 border-slate-300 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-800 focus:border-teal-600"
-              >
-                <option value="resume">Resume / CV</option>
-                <option value="cover_letter">Cover Letter</option>
-                <option value="portfolio">Project Summary / Portfolio</option>
-              </select>
-            </div>
+      {/* 2. UPLOAD INTERFACE IN BROWSER-WINDOW FRAME */}
+      <div className="browser-window-frame">
+        <div className="browser-window-header justify-between">
+          <div className="flex items-center gap-2">
+            <span className="browser-window-dot bg-[#FF5F56]"></span>
+            <span className="browser-window-dot bg-[#FFBD2E]"></span>
+            <span className="browser-window-dot bg-[#27C93F]"></span>
+            <span className="text-xs font-bold text-[#646672] ml-2">Upload Application Document</span>
           </div>
-        </CardHeader>
 
-        <CardContent className="p-6">
-          {/* Drag and Drop Box */}
+          <div className="flex items-center gap-2">
+            <label htmlFor="doc-category" className="text-xs font-bold text-[#646672] whitespace-nowrap">
+              Category:
+            </label>
+            <select
+              id="doc-category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="bg-white border-2 border-[#D5D5C8] rounded-xl px-3 py-1 text-xs font-bold text-[#18191D] focus:border-[#1F5FBF]"
+            >
+              <option value="resume">Resume / CV</option>
+              <option value="cover_letter">Cover Letter</option>
+              <option value="portfolio">Project Summary / Portfolio</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="p-6">
+          {/* Drag and Drop Zone */}
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -274,10 +273,10 @@ export default function DocumentHubPage() {
             tabIndex={0}
             role="button"
             aria-label="Upload document file drop zone. Press enter to choose a file"
-            className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center min-h-[190px] ${
+            className={`border-2 border-dashed rounded-3xl p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center min-h-[190px] ${
               isDragging
-                ? "border-teal-600 bg-teal-50/80 scale-[0.99]"
-                : "border-slate-300 hover:border-teal-600 hover:bg-slate-50/80 bg-white"
+                ? "border-[#1F5FBF] bg-[#D4F1FE] scale-[0.99]"
+                : "border-[#D5D5C8] hover:border-[#1F5FBF] hover:bg-[#F3F3E3] bg-[#FBFBEF]"
             }`}
           >
             <input
@@ -288,30 +287,30 @@ export default function DocumentHubPage() {
               onChange={handleFileInputChange}
             />
 
-            <div className="h-14 w-14 rounded-2xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center mb-3">
+            <div className="h-14 w-14 rounded-2xl bg-[#E0F2FE] border border-[#BAE6FD] text-[#0284C7] flex items-center justify-center mb-3 shadow-xs">
               <UploadCloud className="h-7 w-7" aria-hidden="true" />
             </div>
 
-            <p className="text-base font-bold text-slate-900">
-              {isDragging ? "Drop your file here" : "Click to browse or drag and drop your document here"}
+            <p className="font-display text-base font-extrabold text-[#18191D]">
+              {isDragging ? "Drop your resume or document here" : "Click to select or drag and drop your document here"}
             </p>
-            <p className="text-xs text-slate-500 mt-1">
-              PRAYAS will automatically parse your skills and achievements for one-click form completion.
+            <p className="text-xs text-[#646672] mt-1">
+              Supports PDF, DOCX, TXT (up to 10MB). Text is parsed and scoped privately to your account.
             </p>
           </div>
 
           {/* Upload Progress Bar */}
           {uploading && (
-            <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 animate-in fade-in duration-150">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                <span className="flex items-center gap-1.5 text-teal-700">
+            <div className="mt-6 p-4 rounded-2xl bg-[#FBFBEF] border border-[#E2E2D4] space-y-2 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between text-xs font-bold text-[#18191D]">
+                <span className="flex items-center gap-1.5 text-[#0284C7]">
                   <Sparkles className="h-4 w-4 animate-spin" />
-                  <span>Processing &amp; Indexing Document...</span>
+                  <span>Parsing Text &amp; Generating Embeddings...</span>
                 </span>
                 <span>{uploadProgress}%</span>
               </div>
               <div
-                className="w-full bg-slate-200 rounded-full h-3 overflow-hidden"
+                className="w-full bg-[#E2E2D4] rounded-full h-3 overflow-hidden"
                 role="progressbar"
                 aria-valuenow={uploadProgress}
                 aria-valuemin={0}
@@ -319,60 +318,60 @@ export default function DocumentHubPage() {
                 aria-label="Document upload progress"
               >
                 <div
-                  className="bg-teal-600 h-3 rounded-full transition-all duration-300 ease-out"
+                  className="bg-[#2F9BE0] h-3 rounded-full transition-all duration-300 ease-out"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* 2. UPLOADED DOCUMENTS LIST */}
+      {/* 3. UPLOADED DOCUMENTS LIST */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <FolderOpen className="h-5 w-5 text-teal-700" />
+          <h2 className="font-display text-xl font-extrabold text-[#18191D] flex items-center gap-2">
+            <FolderOpen className="h-5 w-5 text-[#2F9BE0]" />
             <span>Indexed Application Documents ({documents.length})</span>
           </h2>
-          <span className="text-xs text-slate-500 font-medium">
+          <span className="text-xs text-[#646672] font-bold">
             Available across all browser job forms
           </span>
         </div>
 
         {loading ? (
-          <div className="p-12 text-center bg-white rounded-xl border border-slate-200">
-            <RefreshCw className="h-6 w-6 animate-spin mx-auto text-teal-600 mb-2" />
-            <p className="text-sm font-semibold text-slate-600">Loading your indexed documents...</p>
+          <div className="p-12 text-center bg-white rounded-2xl border border-[#E2E2D4]">
+            <RefreshCw className="h-6 w-6 animate-spin mx-auto text-[#1F5FBF] mb-2" />
+            <p className="text-sm font-bold text-[#18191D]">Loading your indexed documents...</p>
           </div>
         ) : documents.length === 0 ? (
-          <Card className="p-12 text-center border-dashed border-2 border-slate-300">
-            <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400 mb-3">
+          <div className="p-12 text-center border-dashed border-2 border-[#D5D5C8] rounded-3xl bg-[#FBFBEF]">
+            <div className="h-12 w-12 rounded-full bg-[#E8E8DC] flex items-center justify-center mx-auto text-[#646672] mb-3">
               <FileText className="h-6 w-6" />
             </div>
-            <h3 className="text-lg font-bold text-slate-800">No Documents Uploaded Yet</h3>
-            <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
-              Upload your resume or past application answers above so PRAYAS can answer questions for you.
+            <h3 className="font-display text-lg font-bold text-[#18191D]">No Documents Uploaded Yet</h3>
+            <p className="text-sm text-[#4B4D56] mt-1 max-w-sm mx-auto">
+              Upload your resume or past application answers above so PRAYAS can draft answers for you.
             </p>
-          </Card>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {documents.map((doc) => (
-              <Card
+              <div
                 key={doc.id}
-                className="border-slate-200 hover:border-teal-500 hover:shadow-md transition-all flex flex-col justify-between"
+                className="bg-white rounded-2xl border border-[#E2E2D4] p-5 hover:border-[#2F9BE0] hover:shadow-md transition-all flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-10 w-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0">
-                        <FileText className="h-5 w-5 text-teal-400" />
+                      <div className="h-10 w-10 rounded-xl bg-[#18191D] text-[#2F9BE0] flex items-center justify-center shrink-0">
+                        <FileText className="h-5 w-5" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-base font-bold text-slate-900 truncate" title={doc.name}>
+                        <h3 className="text-base font-bold text-[#18191D] truncate" title={doc.name}>
                           {doc.name}
                         </h3>
-                        <p className="text-xs text-slate-500 mt-0.5">
+                        <p className="text-xs text-[#646672] mt-0.5">
                           {formatBytes(doc.sizeBytes)} • {new Date(doc.uploadedAt).toLocaleDateString()}
                         </p>
                       </div>
@@ -381,14 +380,14 @@ export default function DocumentHubPage() {
                   </div>
 
                   {/* AI Summary Excerpt */}
-                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-100 text-xs text-slate-700 leading-relaxed mb-4">
+                  <div className="p-3 rounded-xl bg-[#FBFBEF] border border-[#E2E2D4] text-xs text-[#4B4D56] leading-relaxed mb-4">
                     <p className="line-clamp-2">{doc.summary}</p>
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-800">
-                    <CheckCircle2 className="h-4 w-4 text-teal-600" />
+                <div className="pt-3 border-t border-[#E2E2D4] flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#065F46]">
+                    <CheckCircle2 className="h-4 w-4 text-[#059669]" />
                     <span>AI Indexed &amp; Active</span>
                   </span>
 
@@ -400,8 +399,8 @@ export default function DocumentHubPage() {
                         setSelectedDoc(doc);
                         setIsModalOpen(true);
                       }}
-                      leftIcon={<Eye className="h-4 w-4 text-slate-600" />}
-                      className="text-xs font-semibold text-slate-700 hover:text-slate-950"
+                      leftIcon={<Eye className="h-4 w-4 text-[#646672]" />}
+                      className="text-xs font-bold text-[#18191D]"
                       title="View AI Extracted Insights"
                     >
                       AI Summary
@@ -413,7 +412,7 @@ export default function DocumentHubPage() {
                         setDocToDelete(doc);
                         setIsDeleteModalOpen(true);
                       }}
-                      className="text-xs font-semibold text-rose-600 hover:text-rose-800 hover:bg-rose-50 p-2"
+                      className="text-xs font-bold text-rose-600 hover:text-rose-800 hover:bg-rose-50 p-2"
                       title="Delete document"
                       aria-label={`Delete ${doc.name}`}
                     >
@@ -421,13 +420,13 @@ export default function DocumentHubPage() {
                     </Button>
                   </div>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* 3. AI SUMMARY PREVIEW MODAL */}
+      {/* 4. AI SUMMARY PREVIEW MODAL */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -437,31 +436,31 @@ export default function DocumentHubPage() {
       >
         {selectedDoc && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between text-xs text-slate-500 pb-3 border-b border-slate-100">
+            <div className="flex items-center justify-between text-xs text-[#646672] pb-3 border-b border-[#E2E2D4]">
               <span>Category: <strong>{selectedDoc.category.replace("_", " ").toUpperCase()}</strong></span>
               <span>Size: <strong>{formatBytes(selectedDoc.sizeBytes)}</strong></span>
             </div>
 
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5 text-teal-600" />
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[#646672] mb-1.5 flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-[#2F9BE0]" />
                 <span>AI Synthesized Profile Summary</span>
               </h4>
-              <p className="text-sm text-slate-800 bg-slate-50 p-3.5 rounded-xl border border-slate-200 leading-relaxed">
+              <p className="text-sm text-[#18191D] bg-[#FBFBEF] p-4 rounded-2xl border border-[#E2E2D4] leading-relaxed">
                 {selectedDoc.summary}
               </p>
             </div>
 
             {selectedDoc.skills && selectedDoc.skills.length > 0 && (
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#646672] mb-1.5">
                   Extracted Core Skills &amp; Keywords
                 </h4>
                 <div className="flex flex-wrap gap-1.5">
                   {selectedDoc.skills.map((skill, i) => (
                     <span
                       key={i}
-                      className="px-2.5 py-1 rounded-md bg-teal-50 border border-teal-200 text-teal-800 text-xs font-semibold"
+                      className="px-2.5 py-1 rounded-lg bg-[#CEEEFD] border border-[#BAE6FD] text-[#0284C7] text-xs font-bold"
                     >
                       {skill}
                     </span>
@@ -470,12 +469,11 @@ export default function DocumentHubPage() {
               </div>
             )}
 
-            <div className="pt-4 border-t border-slate-100 flex justify-end">
+            <div className="pt-4 border-t border-[#E2E2D4] flex justify-end">
               <Button
                 variant="primary"
                 size="md"
                 onClick={() => setIsModalOpen(false)}
-                className="bg-slate-900"
               >
                 Close Preview
               </Button>
@@ -484,7 +482,7 @@ export default function DocumentHubPage() {
         )}
       </Modal>
 
-      {/* 4. DELETE CONFIRMATION MODAL */}
+      {/* 5. DELETE CONFIRMATION MODAL */}
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -492,7 +490,7 @@ export default function DocumentHubPage() {
         description={`Are you sure you want to delete "${docToDelete?.name}" from your AI knowledge base?`}
       >
         <div className="space-y-4">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-[#4B4D56]">
             This action will remove the document context from automated application answer generation. You can always re-upload it later.
           </p>
           <div className="flex items-center justify-end gap-3 pt-2">

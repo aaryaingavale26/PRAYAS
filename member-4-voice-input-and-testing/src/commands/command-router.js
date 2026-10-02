@@ -1,11 +1,12 @@
 /**
- * PRAYAS 3.0 - Command Engine
- * CommandRouter: Validates, routes, and provides visual and auditory feedback for voice commands.
+ * PRAYAS 3.0 - Intelligent Command Router (Member 4)
  * 
- * Safety:
- * - Rejects arbitrary spoken code
- * - Validates against strict IntentType
- * - Always provides spoken and visual status updates
+ * Features:
+ * - Natural Language Intent classification
+ * - Warm, audible confirmations designed for candidates with visual/motor disabilities
+ * - Friendly clarifying question fallback for borderline confidence phrases
+ * - Comprehensive help command
+ * - Immediate speech synthesis cancellation on stop
  */
 
 import { IntentType, matchCommandIntent, normalizeTranscript } from './command-definitions.js';
@@ -18,7 +19,7 @@ export class CommandRouter {
   constructor(options = {}) {
     this.synthesizer = options.synthesizer || null;
     this.actions = new Map();
-    this.onFeedback = null; // ({ success, intent, message, transcript })
+    this.onFeedback = null; // ({ success, intent, message, transcript, needsClarification, clarification })
   }
 
   /**
@@ -44,12 +45,12 @@ export class CommandRouter {
   /**
    * Execute and route a recognized transcript
    * @param {string} rawTranscript 
-   * @returns {Promise<{ success: boolean, intent: string, message: string }>}
+   * @returns {Promise<{ success: boolean, intent: string, message: string, transcript: string, needsClarification?: boolean }>}
    */
   async execute(rawTranscript) {
     const match = matchCommandIntent(rawTranscript);
 
-    // Stop command should always immediately stop speech synthesis regardless of registration
+    // Stop command halts audio immediately
     if (match.intent === IntentType.STOP_READING) {
       if (this.synthesizer) {
         this.synthesizer.stop();
@@ -69,9 +70,48 @@ export class CommandRouter {
       return feedback;
     }
 
-    // Handle unrecognized command
+    // Borderline confidence: Ask a friendly clarifying question
+    if (match.needsClarification && match.definition) {
+      const clarifyText = match.clarification || `Did you want me to ${match.definition.label}?`;
+      const feedback = {
+        success: false,
+        intent: match.intent,
+        needsClarification: true,
+        clarification: clarifyText,
+        message: clarifyText,
+        transcript: rawTranscript
+      };
+      this._emitFeedback(feedback);
+
+      if (this.synthesizer) {
+        this.synthesizer.speak(clarifyText);
+      }
+      return feedback;
+    }
+
+    // Help command
+    if (match.intent === IntentType.HELP) {
+      const helpMsg = 'You can say: Read Question, Next Field, Previous Field, Autofill, AI Draft, Page Info, or Start Voice Call.';
+      const feedback = {
+        success: true,
+        intent: IntentType.HELP,
+        message: helpMsg,
+        transcript: rawTranscript
+      };
+      this._emitFeedback(feedback);
+
+      const handler = this.actions.get(match.intent);
+      if (typeof handler === 'function') {
+        await handler({ intent: match.intent, definition: match.definition });
+      } else if (this.synthesizer) {
+        this.synthesizer.speak(helpMsg);
+      }
+      return feedback;
+    }
+
+    // Unrecognized command
     if (match.intent === IntentType.UNKNOWN || !match.definition) {
-      const normalized = normalizeTranscript(rawTranscript);
+      const normalized = normalizeTranscript(rawTranscript, true);
       const feedback = {
         success: false,
         intent: IntentType.UNKNOWN,
@@ -82,8 +122,7 @@ export class CommandRouter {
       this._emitFeedback(feedback);
 
       if (this.synthesizer) {
-        // Speak guidance briefly
-        this.synthesizer.speak('Command not recognized. You can say: Read page, Read question, Next field, Previous field, Fill my details, or Stop reading.');
+        this.synthesizer.speak('Command not recognized. You can say: Read question, Next field, Previous field, Autofill, AI draft, or Help.');
       }
 
       return feedback;
@@ -115,7 +154,6 @@ export class CommandRouter {
         return errFeedback;
       }
     } else {
-      // Default spoken feedback if no custom action handler is attached yet
       if (this.synthesizer) {
         this.synthesizer.speak(match.definition.spokenFeedback);
       }

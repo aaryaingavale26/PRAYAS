@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getPassport, savePassport, DEFAULT_PASSPORT } from "@/lib/passportStorage";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Toggle } from "@/components/ui/Toggle";
 import {
@@ -14,11 +14,15 @@ import {
   Mail,
   Phone,
   MapPin,
+  Calendar,
+  GraduationCap,
+  Briefcase,
+  Code,
+  Link2,
+  FileCheck,
   Keyboard,
   Mic,
-  Eye,
   Sparkles,
-  BookOpen,
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
@@ -26,9 +30,8 @@ import {
   RotateCcw,
   Save,
   MousePointer,
-  HelpCircle,
-  FileCheck2,
-  Lock
+  Check,
+  ArrowRight
 } from "lucide-react";
 
 export default function PassportPage() {
@@ -100,7 +103,6 @@ export default function PassportPage() {
 
     if (!validateForm()) {
       setErrorMessage("Please correct the errors in the form before saving.");
-      // Focus first error field if any
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -143,6 +145,21 @@ export default function PassportPage() {
     downloadAnchor.remove();
   };
 
+  // Calculate profile completeness score
+  const completenessItems = [
+    Boolean(formData.fullName),
+    Boolean(formData.email),
+    Boolean(formData.phone),
+    Boolean(formData.location),
+    Boolean(formData.dob),
+    Boolean(formData.education),
+    Boolean(formData.skills),
+    Boolean(formData.workExperience),
+    Boolean(formData.idDetails),
+    Boolean(formData.preferredMethod),
+  ];
+  const completenessPct = Math.round((completenessItems.filter(Boolean).length / completenessItems.length) * 100);
+
   const interactionOptions = [
     {
       id: "keyboard-only",
@@ -178,53 +195,59 @@ export default function PassportPage() {
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 min-h-[60vh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 p-8">
-          <div className="h-8 w-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-base font-semibold text-slate-700">Loading your Accessibility Passport...</p>
+          <div className="h-8 w-8 border-4 border-[#1F5FBF] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-base font-semibold text-[#18191D]">Loading your Accessibility Passport...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      {/* Page Title & Mission */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 pb-6 border-b border-slate-200">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 w-full space-y-8">
+      
+      {/* 1. IMAGE 1 FOLDER-TAB SECTION HEADER */}
+      <div className="flex items-center justify-between">
+        <div className="folder-tab-header">
+          <span>ACCESSIBILITY PASSPORT</span>
+          <ArrowRight className="h-4 w-4" />
+        </div>
+        <div className="text-xs font-bold text-[#646672] uppercase tracking-wider">
+          PORTABLE CANDIDATE PROFILE
+        </div>
+      </div>
+
+      {/* Top Banner & Action Buttons */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-[#E2E2D4]">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-bold mb-2">
-            <Sliders className="h-3.5 w-3.5" />
-            <span>PRAYAS Core Module</span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-            Accessibility Passport
+          <h1 className="font-display text-3xl sm:text-4xl font-black text-[#18191D] tracking-tight">
+            Universal Profile &amp; Preferences
           </h1>
-          <p className="mt-1 text-slate-600 text-base max-w-2xl leading-relaxed">
-            Configure your interaction, visual, and language preferences once. PRAYAS automatically injects these settings into every job application portal.
+          <p className="mt-1 text-[#4B4D56] text-sm sm:text-base max-w-2xl leading-relaxed">
+            Configure your interaction, education, and accommodation preferences once. The PRAYAS Extension automatically syncs these details into employer job applications.
           </p>
         </div>
 
-        {/* Action Header Buttons */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-3">
           <Button
             type="button"
             variant="outline"
             size="md"
             onClick={handleExportJSON}
             leftIcon={<Download className="h-4 w-4" />}
-            className="font-semibold text-xs sm:text-sm"
-            title="Download JSON file to sync with Chrome extension"
+            className="font-bold text-xs sm:text-sm"
           >
             Export JSON
           </Button>
           <Button
             type="button"
-            variant="primary"
+            variant="secondary"
             size="md"
             onClick={handleSave}
             isLoading={saving}
             leftIcon={<Save className="h-4 w-4" />}
-            className="bg-slate-900 hover:bg-slate-800 font-bold"
+            className="font-bold text-xs sm:text-sm"
           >
             Save Passport
           </Button>
@@ -235,13 +258,13 @@ export default function PassportPage() {
       {saveSuccess && (
         <div
           role="status"
-          className="mb-8 p-4 rounded-xl bg-emerald-50 border-2 border-emerald-300 text-emerald-900 text-base flex items-center justify-between shadow-sm animate-in fade-in duration-200"
+          className="p-4 rounded-2xl bg-[#D1FAE5] border-2 border-[#A7F3D0] text-[#065F46] text-base flex items-center justify-between shadow-xs animate-in fade-in duration-200"
         >
           <div className="flex items-center gap-3">
-            <CheckCircle2 className="h-6 w-6 text-emerald-600 shrink-0" aria-hidden="true" />
+            <CheckCircle2 className="h-6 w-6 text-[#059669] shrink-0" aria-hidden="true" />
             <div>
               <p className="font-bold">Accessibility Passport successfully saved!</p>
-              <p className="text-sm text-emerald-800">Your preferences are synced with your session and Chrome companion extension.</p>
+              <p className="text-sm text-[#047857]">Your profile data and preferences are synced with your Chrome Companion Extension.</p>
             </div>
           </div>
           <Badge variant="success" className="hidden sm:inline-flex">Sync Active</Badge>
@@ -251,31 +274,31 @@ export default function PassportPage() {
       {errorMessage && (
         <div
           role="alert"
-          className="mb-8 p-4 rounded-xl bg-rose-50 border-2 border-rose-300 text-rose-900 text-base flex items-center gap-3 shadow-sm animate-in fade-in duration-200"
+          className="p-4 rounded-2xl bg-[#FEE2E2] border-2 border-[#FECACA] text-[#991B1B] text-base flex items-center gap-3 shadow-xs animate-in fade-in duration-200"
         >
-          <AlertCircle className="h-6 w-6 text-rose-600 shrink-0" aria-hidden="true" />
+          <AlertCircle className="h-6 w-6 text-[#DC2626] shrink-0" aria-hidden="true" />
           <p className="font-semibold">{errorMessage}</p>
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* LEFT 2 COLUMNS: The Full Settings Form */}
+        
+        {/* LEFT 2 COLUMNS: Form Sections */}
         <form onSubmit={handleSave} className="lg:col-span-2 space-y-8">
           
-          {/* 1. PERSONAL DETAILS SECTION */}
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-sm">
-                  1
-                </div>
-                <div>
-                  <CardTitle className="text-xl font-bold">Applicant Details</CardTitle>
-                  <CardDescription>Primary information used to auto-populate job application header fields.</CardDescription>
-                </div>
+          {/* SECTION 1: CANDIDATE IDENTITY & CONTACT (Structured Data for Autofill) */}
+          <div className="browser-window-frame">
+            <div className="browser-window-header justify-between">
+              <div className="flex items-center gap-2">
+                <span className="browser-window-dot bg-[#FF5F56]"></span>
+                <span className="browser-window-dot bg-[#FFBD2E]"></span>
+                <span className="browser-window-dot bg-[#27C93F]"></span>
+                <span className="text-xs font-bold text-[#646672] ml-2">1. Candidate Identity &amp; Contact Details</span>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-2">
+              <span className="text-[11px] font-bold text-[#2F9BE0]">Core Autofill</span>
+            </div>
+
+            <div className="p-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   id="passport-name"
@@ -300,7 +323,7 @@ export default function PassportPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Input
                   id="passport-phone"
                   label="Phone Number"
@@ -309,37 +332,165 @@ export default function PassportPage() {
                   value={formData.phone}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
                   leftIcon={<Phone className="h-4 w-4" />}
-                  helperText="Format with country code if applicable"
+                />
+                <Input
+                  id="passport-dob"
+                  label="Date of Birth"
+                  type="date"
+                  value={formData.dob || ""}
+                  onChange={(e) => handleInputChange("dob", e.target.value)}
+                  leftIcon={<Calendar className="h-4 w-4" />}
                 />
                 <Input
                   id="passport-location"
-                  label="Current City / Location"
+                  label="City, State / Country"
                   placeholder="e.g. Bengaluru, India"
                   value={formData.location}
                   onChange={(e) => handleInputChange("location", e.target.value)}
                   leftIcon={<MapPin className="h-4 w-4" />}
                 />
               </div>
-            </CardContent>
-          </Card>
 
-          {/* 2. INTERACTION & ASSISTIVE TECH SECTION */}
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-lg bg-teal-700 text-white flex items-center justify-center font-bold text-sm">
-                  2
-                </div>
-                <div>
-                  <CardTitle className="text-xl font-bold">Preferred Interaction Method</CardTitle>
-                  <CardDescription>Select the input modality you rely on most when filling forms online.</CardDescription>
+              <div>
+                <Input
+                  id="passport-address"
+                  label="Street Address / Postal Code"
+                  placeholder="e.g. 124 Park Avenue, Indiranagar, Bengaluru 560038"
+                  value={formData.address || ""}
+                  onChange={(e) => handleInputChange("address", e.target.value)}
+                  leftIcon={<MapPin className="h-4 w-4" />}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 2: EDUCATION, EXPERIENCE & SKILLS (Structured RAG Data) */}
+          <div className="browser-window-frame">
+            <div className="browser-window-header justify-between">
+              <div className="flex items-center gap-2">
+                <span className="browser-window-dot bg-[#FF5F56]"></span>
+                <span className="browser-window-dot bg-[#FFBD2E]"></span>
+                <span className="browser-window-dot bg-[#27C93F]"></span>
+                <span className="text-xs font-bold text-[#646672] ml-2">2. Education, Experience &amp; Professional Qualifications</span>
+              </div>
+              <span className="text-[11px] font-bold text-[#065F46]">Autofill + AI Draft</span>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label htmlFor="passport-education" className="block text-sm font-bold text-[#18191D] mb-1">
+                  Highest Degree &amp; Education Details
+                </label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute top-3 left-3 text-[#646672]">
+                    <GraduationCap className="h-4 w-4" />
+                  </div>
+                  <textarea
+                    id="passport-education"
+                    rows={2}
+                    placeholder="e.g. B.Tech in Computer Science from National Institute of Technology (2018 - 2022). GPA: 8.9/10."
+                    value={formData.education || ""}
+                    onChange={(e) => handleInputChange("education", e.target.value)}
+                    className="w-full rounded-xl border-2 border-[#D5D5C8] pl-10 pr-4 py-2.5 text-sm text-[#18191D] focus:border-[#1F5FBF] hover:border-[#18191D]"
+                  />
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-2">
+
+              <div>
+                <label htmlFor="passport-skills" className="block text-sm font-bold text-[#18191D] mb-1">
+                  Core Skills &amp; Competencies
+                </label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute top-3 left-3 text-[#646672]">
+                    <Code className="h-4 w-4" />
+                  </div>
+                  <textarea
+                    id="passport-skills"
+                    rows={2}
+                    placeholder="e.g. JavaScript, React, Python, Web Accessibility (WCAG 2.2 AA), ARIA, Node.js, Next.js, Git."
+                    value={formData.skills || ""}
+                    onChange={(e) => handleInputChange("skills", e.target.value)}
+                    className="w-full rounded-xl border-2 border-[#D5D5C8] pl-10 pr-4 py-2.5 text-sm text-[#18191D] focus:border-[#1F5FBF] hover:border-[#18191D]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="passport-experience" className="block text-sm font-bold text-[#18191D] mb-1">
+                  Work Experience Summary
+                </label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute top-3 left-3 text-[#646672]">
+                    <Briefcase className="h-4 w-4" />
+                  </div>
+                  <textarea
+                    id="passport-experience"
+                    rows={3}
+                    placeholder="e.g. Frontend Engineer at TechCorp (2022 - Present, 2+ yrs). Built accessible design systems, improved WCAG compliance from 64% to 98%."
+                    value={formData.workExperience || ""}
+                    onChange={(e) => handleInputChange("workExperience", e.target.value)}
+                    className="w-full rounded-xl border-2 border-[#D5D5C8] pl-10 pr-4 py-2.5 text-sm text-[#18191D] focus:border-[#1F5FBF] hover:border-[#18191D]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                <Input
+                  id="passport-portfolio"
+                  label="Portfolio URL"
+                  placeholder="https://myportfolio.dev"
+                  value={formData.portfolioUrl || ""}
+                  onChange={(e) => handleInputChange("portfolioUrl", e.target.value)}
+                  leftIcon={<Link2 className="h-4 w-4" />}
+                />
+                <Input
+                  id="passport-linkedin"
+                  label="LinkedIn Profile"
+                  placeholder="https://linkedin.com/in/username"
+                  value={formData.linkedinUrl || ""}
+                  onChange={(e) => handleInputChange("linkedinUrl", e.target.value)}
+                  leftIcon={<Link2 className="h-4 w-4" />}
+                />
+                <Input
+                  id="passport-github"
+                  label="GitHub / Code URL"
+                  placeholder="https://github.com/username"
+                  value={formData.githubUrl || ""}
+                  onChange={(e) => handleInputChange("githubUrl", e.target.value)}
+                  leftIcon={<Code className="h-4 w-4" />}
+                />
+              </div>
+
+              <div className="pt-2">
+                <Input
+                  id="passport-id-details"
+                  label="Passport / National ID Details (for Verification)"
+                  placeholder="e.g. Passport No. Z1234567 / Aadhaar / Gov ID"
+                  value={formData.idDetails || ""}
+                  onChange={(e) => handleInputChange("idDetails", e.target.value)}
+                  leftIcon={<FileCheck className="h-4 w-4" />}
+                  helperText="Stored locally and encrypted for identity verification on corporate employer forms."
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 3: INTERACTION MODALITY */}
+          <div className="browser-window-frame">
+            <div className="browser-window-header justify-between">
+              <div className="flex items-center gap-2">
+                <span className="browser-window-dot bg-[#FF5F56]"></span>
+                <span className="browser-window-dot bg-[#FFBD2E]"></span>
+                <span className="browser-window-dot bg-[#27C93F]"></span>
+                <span className="text-xs font-bold text-[#646672] ml-2">3. Primary Interaction Mode</span>
+              </div>
+              <span className="text-[11px] font-bold text-[#2F9BE0]">Assistive Layer</span>
+            </div>
+
+            <div className="p-6 space-y-6">
               <fieldset>
-                <legend className="text-sm font-bold text-slate-800 mb-3">
-                  Select Primary Interaction Mode:
+                <legend className="text-sm font-bold text-[#18191D] mb-3">
+                  Select Your Preferred Form Filling Mode:
                 </legend>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup">
                   {interactionOptions.map((opt) => {
@@ -351,23 +502,24 @@ export default function PassportPage() {
                         type="button"
                         role="radio"
                         aria-checked={isSelected}
+                        suppressHydrationWarning
                         onClick={() => handleInputChange("preferredMethod", opt.id)}
-                        className={`p-4 rounded-xl border-2 text-left transition-all flex items-start gap-3.5 min-h-[72px] cursor-pointer ${
+                        className={`p-4 rounded-2xl border-2 text-left transition-all flex items-start gap-3.5 min-h-[72px] cursor-pointer ${
                           isSelected
-                            ? "border-teal-700 bg-teal-50/80 shadow-xs"
-                            : "border-slate-200 hover:border-slate-300 bg-white"
+                            ? "border-[#1F5FBF] bg-[#D4F1FE] shadow-sm"
+                            : "border-[#E2E2D4] hover:border-[#2F9BE0] bg-white"
                         }`}
                       >
                         <div
-                          className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
-                            isSelected ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-700"
+                          className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${
+                            isSelected ? "bg-[#1F5FBF] text-white" : "bg-[#F3F3E3] text-[#18191D]"
                           }`}
                         >
                           <Icon className="h-5 w-5" aria-hidden="true" />
                         </div>
                         <div>
-                          <p className="font-bold text-sm text-slate-900">{opt.title}</p>
-                          <p className="text-xs text-slate-600 mt-0.5 leading-snug">{opt.desc}</p>
+                          <p className="font-bold text-sm text-[#18191D]">{opt.title}</p>
+                          <p className="text-xs text-[#4B4D56] mt-0.5 leading-snug">{opt.desc}</p>
                         </div>
                       </button>
                     );
@@ -375,7 +527,7 @@ export default function PassportPage() {
                 </div>
               </fieldset>
 
-              <div className="border-t border-slate-100 pt-4 space-y-1">
+              <div className="border-t border-[#E2E2D4] pt-4 space-y-1">
                 <Toggle
                   id="passport-voice-assist"
                   label="Voice Assistance & Speech-to-Text"
@@ -398,321 +550,233 @@ export default function PassportPage() {
                   onChange={(val) => handleInputChange("autoFocusForms", val)}
                 />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* 3. DISPLAY & CONTRAST SECTION */}
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-sm">
-                  3
-                </div>
-                <div>
-                  <CardTitle className="text-xl font-bold">Text Size & Contrast Preferences</CardTitle>
-                  <CardDescription>Customize visual typography scale and contrast themes applied to application portals.</CardDescription>
-                </div>
+          {/* SECTION 4: COGNITIVE, DISPLAY & ACCOMMODATION NOTES */}
+          <div className="browser-window-frame">
+            <div className="browser-window-header justify-between">
+              <div className="flex items-center gap-2">
+                <span className="browser-window-dot bg-[#FF5F56]"></span>
+                <span className="browser-window-dot bg-[#FFBD2E]"></span>
+                <span className="browser-window-dot bg-[#27C93F]"></span>
+                <span className="text-xs font-bold text-[#646672] ml-2">4. Accommodations &amp; Visual Settings</span>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-2">
-              {/* Text Size Selection */}
-              <div>
-                <label className="block text-sm font-bold text-slate-800 mb-2">
-                  Base Typography Scale
-                </label>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { id: "normal", label: "Normal (100%)", size: "text-sm" },
-                    { id: "large", label: "Large (125%)", size: "text-base font-semibold" },
-                    { id: "xlarge", label: "Extra Large (150%)", size: "text-lg font-bold" },
-                  ].map((sizeOpt) => (
-                    <button
-                      key={sizeOpt.id}
-                      type="button"
-                      onClick={() => handleInputChange("textSize", sizeOpt.id)}
-                      className={`p-3.5 rounded-xl border-2 text-center transition-all ${
-                        formData.textSize === sizeOpt.id
-                          ? "border-teal-700 bg-teal-50 text-teal-900 font-bold"
-                          : "border-slate-200 hover:border-slate-300 text-slate-700"
-                      }`}
-                      aria-pressed={formData.textSize === sizeOpt.id}
-                    >
-                      <span className={sizeOpt.size}>{sizeOpt.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <span className="text-[11px] font-bold text-[#0284C7]">WCAG 2.2</span>
+            </div>
 
-              {/* Contrast Mode Selection */}
-              <div>
-                <label className="block text-sm font-bold text-slate-800 mb-2">
-                  Contrast &amp; Theme Mode
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {[
-                    { id: "standard", label: "Standard Crisp", previewBg: "bg-white text-slate-900 border-slate-300" },
-                    { id: "high-contrast", label: "High Navy/Teal", previewBg: "bg-slate-900 text-teal-300 border-teal-500" },
-                    { id: "dark-contrast", label: "Dark High Contrast", previewBg: "bg-black text-white border-slate-500" },
-                    { id: "yellow-on-black", label: "Yellow on Black", previewBg: "bg-black text-amber-300 border-amber-400" },
-                  ].map((cOpt) => (
-                    <button
-                      key={cOpt.id}
-                      type="button"
-                      onClick={() => handleInputChange("contrast", cOpt.id)}
-                      className={`p-3 rounded-xl border-2 text-center flex flex-col items-center gap-2 transition-all ${
-                        formData.contrast === cOpt.id
-                          ? "border-teal-700 ring-2 ring-teal-600/30 font-bold"
-                          : "border-slate-200 hover:border-slate-300"
-                      }`}
-                      aria-pressed={formData.contrast === cOpt.id}
-                    >
-                      <div className={`w-full py-2 px-2 rounded-md border text-xs font-bold ${cOpt.previewBg}`}>
-                        Sample
-                      </div>
-                      <span className="text-xs text-slate-800">{cOpt.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="border-t border-slate-100 pt-4 space-y-1">
+            <div className="p-6 space-y-6">
+              <div className="space-y-1">
+                <Toggle
+                  id="passport-simplified-lang"
+                  label="Simplified Language (Plain-English AI Explainer)"
+                  description="Translates complex corporate jargon and multi-clause questions into straightforward bullet points."
+                  checked={formData.simplifiedLanguage}
+                  onChange={(val) => handleInputChange("simplifiedLanguage", val)}
+                />
+                <Toggle
+                  id="passport-extended-time"
+                  label="Extended Time Accommodation Alerts"
+                  description="Automatically notifies hiring portals and prompts for timer pauses on timed candidate assessments."
+                  checked={formData.extendedTime}
+                  onChange={(val) => handleInputChange("extendedTime", val)}
+                />
                 <Toggle
                   id="passport-dyslexic-font"
                   label="Dyslexia-Friendly Letter Spacing"
-                  description="Increases letter and line spacing to enhance character distinction and readability."
+                  description="Increases character and line spacing to enhance distinct readability."
                   checked={formData.dyslexicFont}
                   onChange={(val) => handleInputChange("dyslexicFont", val)}
                 />
+              </div>
+
+              {/* Accommodation Notes */}
+              <div className="border-t border-[#E2E2D4] pt-4 space-y-3">
                 <Toggle
-                  id="passport-reduced-motion"
-                  label="Reduced Motion Mode"
-                  description="Eliminates all layout transitions, sliding banners, and background animations."
-                  checked={formData.reducedMotion}
-                  onChange={(val) => handleInputChange("reducedMotion", val)}
+                  id="passport-share-notes"
+                  label="Include Accommodation Request in Application Notes"
+                  description="When enabled, PRAYAS appends a polite standard accommodation note to employer cover forms."
+                  checked={formData.shareAccommodations}
+                  onChange={(val) => handleInputChange("shareAccommodations", val)}
                 />
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* 4. COGNITIVE & LANGUAGE PREFERENCES */}
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-lg bg-teal-700 text-white flex items-center justify-center font-bold text-sm">
-                  4
-                </div>
-                <div>
-                  <CardTitle className="text-xl font-bold">Cognitive &amp; Language Assistance</CardTitle>
-                  <CardDescription>AI tools to clarify ambiguous questions and reduce cognitive load.</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-1 pt-2">
-              <Toggle
-                id="passport-simplified-lang"
-                label="Simplified Language (Plain-English AI Explainer)"
-                description="Translates complex corporate jargon and multi-clause job questions into straightforward bullet points."
-                checked={formData.simplifiedLanguage}
-                onChange={(val) => handleInputChange("simplifiedLanguage", val)}
-              />
-              <Toggle
-                id="passport-step-by-step"
-                label="Step-by-Step Form Focus"
-                description="Hides overwhelming 30-field pages and focuses on one input section at a time."
-                checked={formData.stepByStepForm}
-                onChange={(val) => handleInputChange("stepByStepForm", val)}
-              />
-              <Toggle
-                id="passport-extended-time"
-                label="Extended Time Accommodation Alerts"
-                description="Automatically notifies hiring portals and prompts for timer pauses on timed candidate assessments."
-                checked={formData.extendedTime}
-                onChange={(val) => handleInputChange("extendedTime", val)}
-              />
-            </CardContent>
-          </Card>
-
-          {/* 5. OPTIONAL ACCOMMODATION DISCLOSURE */}
-          <Card className="border-slate-200 shadow-sm bg-slate-50/50">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-8 w-8 rounded-lg bg-slate-800 text-white flex items-center justify-center font-bold text-sm">
-                    5
+                {formData.shareAccommodations && (
+                  <div className="space-y-1.5 animate-in fade-in duration-150">
+                    <label htmlFor="custom-notes" className="block text-sm font-bold text-[#18191D]">
+                      Custom Interview Accommodations Description
+                    </label>
+                    <textarea
+                      id="custom-notes"
+                      rows={3}
+                      placeholder="e.g. 'I require live captions and an accessible screen-reader-friendly code environment for technical interview sessions.'"
+                      value={formData.accommodationNotes || ""}
+                      onChange={(e) => handleInputChange("accommodationNotes", e.target.value)}
+                      className="w-full rounded-xl border-2 border-[#D5D5C8] p-3 text-sm text-[#18191D] focus:border-[#1F5FBF] hover:border-[#18191D]"
+                    />
                   </div>
-                  <div>
-                    <CardTitle className="text-xl font-bold flex items-center gap-2">
-                      <span>Optional Accommodation Note</span>
-                      <Badge variant="teal">100% Optional</Badge>
-                    </CardTitle>
-                    <CardDescription>
-                      Share specific accommodations you need for interviews (e.g., ASL interpreter, live captions).
-                    </CardDescription>
-                  </div>
-                </div>
-                <Lock className="h-5 w-5 text-slate-400" />
+                )}
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-2">
-              <div className="p-3 bg-white rounded-lg border border-slate-200 text-xs text-slate-600 flex items-start gap-2">
-                <ShieldCheck className="h-4 w-4 text-teal-600 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Privacy Safeguard:</strong> This information is stored privately and is never shared without your explicit consent.
-                </span>
-              </div>
+            </div>
+          </div>
 
-              <Toggle
-                id="passport-share-notes"
-                label="Include Accommodation Request in Application Notes"
-                description="When enabled, PRAYAS appends a polite standard accommodation note to employer cover forms."
-                checked={formData.shareAccommodations}
-                onChange={(val) => handleInputChange("shareAccommodations", val)}
-              />
-
-              {formData.shareAccommodations && (
-                <div className="space-y-1.5 animate-in fade-in duration-150">
-                  <label htmlFor="custom-notes" className="block text-sm font-bold text-slate-800">
-                    Custom Interview Accommodations Description
-                  </label>
-                  <textarea
-                    id="custom-notes"
-                    rows={3}
-                    placeholder="e.g. 'I will require real-time captioning or a quiet environment for technical interview sessions.'"
-                    value={formData.accommodationNotes}
-                    onChange={(e) => handleInputChange("accommodationNotes", e.target.value)}
-                    className="w-full rounded-lg border-2 border-slate-300 p-3 text-sm text-slate-900 focus:border-teal-600 hover:border-slate-400"
-                  />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Bottom Action Footer */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+          {/* Form Actions */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
             <Button
               type="button"
               variant="ghost"
               size="md"
               onClick={handleReset}
               leftIcon={<RotateCcw className="h-4 w-4" />}
-              className="text-slate-600 hover:text-rose-600 font-semibold text-sm"
+              className="text-[#646672] hover:text-rose-600 font-bold text-sm"
             >
               Reset to Defaults
             </Button>
 
             <Button
               type="submit"
-              variant="primary"
+              variant="secondary"
               size="lg"
               isLoading={saving}
               leftIcon={<Save className="h-5 w-5" />}
-              className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 font-bold px-8"
+              className="w-full sm:w-auto font-black px-8"
             >
               Save All Passport Preferences
             </Button>
           </div>
         </form>
 
-        {/* RIGHT COLUMN: Live Digital Passport Card Preview */}
+        {/* RIGHT COLUMN: Live Digital Passport Card (Image 1 Charcoal Aesthetic) */}
         <div className="space-y-6">
-          <div className="sticky top-28">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
-              <Sparkles className="h-4 w-4 text-teal-600" />
-              <span>Live Passport Badge Preview</span>
-            </h2>
+          <div className="sticky top-28 space-y-6">
+            
+            {/* Completeness Stat Badge */}
+            <div className="bg-[#FFFFFF] border border-[#E2E2D4] rounded-2xl p-5 flex items-center gap-4 shadow-xs">
+              <div className="circular-stat-badge w-18 h-18 shrink-0 bg-[#E8E8DC]">
+                <span className="font-display text-2xl font-black text-[#18191D]">
+                  {completenessPct}%
+                </span>
+                <span className="text-[9px] font-black text-[#646672] uppercase">COMPLETED</span>
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#646672] block">Profile Ready</span>
+                <span className="font-display text-sm font-bold text-[#18191D] truncate block">
+                  {completenessPct >= 80 ? "Autofill Optimized" : "Needs More Details"}
+                </span>
+                <span className="text-[11px] text-[#2F9BE0] font-bold block mt-0.5">
+                  10 Key Attributes Tracked
+                </span>
+              </div>
+            </div>
 
-            <Card className="border-2 border-slate-900 bg-gradient-to-b from-slate-900 to-slate-950 text-white shadow-xl overflow-hidden">
-              <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-9 w-9 rounded-lg bg-teal-600 flex items-center justify-center text-white font-black text-sm">
-                    P3
+            {/* Live Card Preview */}
+            <div className="bg-[#18191D] border-2 border-[#2C2D35] rounded-3xl text-white shadow-xl overflow-hidden">
+              <div className="p-6 border-b border-[#2C2D35] flex items-center justify-between bg-[#121316]">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-[#2F9BE0] flex items-center justify-center text-white font-black text-sm">
+                    P
                   </div>
                   <div>
-                    <h3 className="font-bold text-white text-base tracking-tight">PRAYAS PASSPORT</h3>
-                    <p className="text-[10px] uppercase font-semibold text-teal-400">Universal Job Profile</p>
+                    <h3 className="font-display font-bold text-white text-base tracking-tight">PRAYAS PASSPORT</h3>
+                    <p className="text-[10px] uppercase font-bold text-[#2F9BE0] tracking-wider">Portable Candidate Card</p>
                   </div>
                 </div>
-                <Badge variant="teal" className="bg-teal-900/80 text-teal-300 border-teal-600 font-bold">
+                <Badge variant="blue" className="bg-[#2F9BE0] text-white border-transparent font-bold">
                   Active
                 </Badge>
               </div>
 
               <div className="p-6 space-y-4 text-sm">
                 <div>
-                  <span className="text-[11px] font-semibold text-slate-400 block">APPLICANT</span>
-                  <p className="text-base font-bold text-white mt-0.5">
+                  <span className="text-[10px] font-bold text-[#A0A2AB] block uppercase tracking-wider">APPLICANT</span>
+                  <p className="font-display text-lg font-black text-white mt-0.5">
                     {formData.fullName || "Unspecified Candidate"}
                   </p>
-                  <p className="text-xs text-slate-300">{formData.email || "No email provided"}</p>
+                  <p className="text-xs text-[#A0A2AB]">{formData.email || "No email provided"}</p>
+                  {formData.phone && <p className="text-xs text-[#A0A2AB]">{formData.phone}</p>}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800 text-xs">
+                {formData.education && (
+                  <div className="pt-2 border-t border-[#2C2D35]">
+                    <span className="text-[10px] font-bold text-[#A0A2AB] block uppercase tracking-wider">Education</span>
+                    <p className="text-xs text-white font-medium line-clamp-2 mt-0.5">{formData.education}</p>
+                  </div>
+                )}
+
+                {formData.skills && (
+                  <div className="pt-2 border-t border-[#2C2D35]">
+                    <span className="text-[10px] font-bold text-[#A0A2AB] block uppercase tracking-wider">Skills</span>
+                    <p className="text-xs text-[#2F9BE0] font-medium line-clamp-2 mt-0.5">{formData.skills}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-[#2C2D35] text-xs">
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Interaction Mode</span>
-                    <span className="font-semibold text-teal-300 capitalize mt-0.5 block">
-                      {formData.preferredMethod.replace("-", " ")}
+                    <span className="text-[10px] font-bold text-[#A0A2AB] block uppercase tracking-wider">Mode</span>
+                    <span className="font-bold text-[#2F9BE0] capitalize mt-0.5 block">
+                      {formData.preferredMethod?.replace("-", " ")}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Text Scale</span>
-                    <span className="font-semibold text-teal-300 capitalize mt-0.5 block">
-                      {formData.textSize}
+                    <span className="text-[10px] font-bold text-[#A0A2AB] block uppercase tracking-wider">City</span>
+                    <span className="font-bold text-white capitalize mt-0.5 block truncate">
+                      {formData.location || "Not Set"}
                     </span>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-800">
-                  <span className="text-[10px] font-bold text-slate-400 block uppercase mb-1.5">
+                <div className="pt-2 border-t border-[#2C2D35]">
+                  <span className="text-[10px] font-bold text-[#A0A2AB] block uppercase tracking-wider mb-2">
                     Active Accommodations
                   </span>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="space-y-1.5">
                     {formData.voiceAssist && (
-                      <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-[10px] font-medium text-slate-200">
-                        Voice Assist
-                      </span>
+                      <div className="flex items-center gap-2 text-xs text-slate-200">
+                        <Check className="h-3.5 w-3.5 text-[#2F9BE0] stroke-[3]" />
+                        <span>Voice Dictation &amp; Read-Aloud</span>
+                      </div>
                     )}
                     {formData.keyboardNav && (
-                      <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-[10px] font-medium text-slate-200">
-                        Keyboard Nav
-                      </span>
+                      <div className="flex items-center gap-2 text-xs text-slate-200">
+                        <Check className="h-3.5 w-3.5 text-[#2F9BE0] stroke-[3]" />
+                        <span>Enhanced Keyboard Navigation</span>
+                      </div>
                     )}
                     {formData.simplifiedLanguage && (
-                      <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-[10px] font-medium text-slate-200">
-                        Plain English AI
-                      </span>
+                      <div className="flex items-center gap-2 text-xs text-slate-200">
+                        <Check className="h-3.5 w-3.5 text-[#2F9BE0] stroke-[3]" />
+                        <span>Plain-English AI Explainer</span>
+                      </div>
                     )}
                     {formData.extendedTime && (
-                      <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-[10px] font-medium text-slate-200">
-                        Extended Time
-                      </span>
-                    )}
-                    {formData.dyslexicFont && (
-                      <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-[10px] font-medium text-slate-200">
-                        Dyslexia Spacing
-                      </span>
+                      <div className="flex items-center gap-2 text-xs text-slate-200">
+                        <Check className="h-3.5 w-3.5 text-[#2F9BE0] stroke-[3]" />
+                        <span>Extended Time Accommodation</span>
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
-                <span>Verified for Chrome Extension</span>
-                <span className="font-mono text-teal-400 text-[10px]">PRAYAS-v3</span>
+              <div className="p-4 bg-[#121316] border-t border-[#2C2D35] flex items-center justify-between text-[11px] text-[#A0A2AB]">
+                <span className="font-semibold">Synced with Chrome Companion</span>
+                <span className="font-mono text-[#2F9BE0] text-[10px] font-bold">PRAYAS 3.0</span>
               </div>
-            </Card>
+            </div>
 
-            {/* Quick Tip Box */}
-            <div className="mt-4 p-4 rounded-xl bg-teal-50 border border-teal-200 text-teal-900 text-xs space-y-1.5">
-              <p className="font-bold flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5 text-teal-700" />
-                <span>Next Step: Document Hub</span>
+            {/* Quick Companion Box */}
+            <div className="p-5 rounded-2xl bg-[#CEEEFD] border-2 border-[#BAE6FD] text-[#18191D] space-y-2">
+              <p className="font-display font-extrabold text-sm text-[#0284C7] flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                <span>Next Step: Upload Resumes</span>
               </p>
-              <p className="text-slate-600 leading-relaxed">
-                After configuring your passport, upload your resumes so PRAYAS can pair your interaction preferences with personalized AI answers.
+              <p className="text-xs text-[#0369A1] leading-relaxed">
+                Now head to the <strong>Document Hub</strong> to upload your CV and cover letters so PRAYAS can draft personalized answers to open questions.
               </p>
             </div>
+
           </div>
         </div>
+
       </div>
     </div>
   );

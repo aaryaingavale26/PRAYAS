@@ -180,12 +180,21 @@ async function postAuditReport(report) {
 }
 
 /**
- * Requests draft answer assistance from backend RAG pipeline.
+ * Requests draft answer assistance from backend RAG pipeline scoped to the authenticated user.
  */
 async function requestRagAnswer(payload) {
-  const config = await chrome.storage.local.get(['backendUrl', 'authToken']);
+  const config = await chrome.storage.local.get(['backendUrl', 'authToken', 'prayasLoggedInUser', 'passportProfile']);
   const backendUrl = config.backendUrl || 'http://localhost:8000';
   const authToken = config.authToken;
+  const user = config.prayasLoggedInUser;
+  const passport = config.passportProfile;
+
+  const enrichedPayload = {
+    ...payload,
+    user_id: payload.user_id || user?.id,
+    user_email: payload.user_email || user?.email,
+    user_profile: payload.user_profile || passport
+  };
 
   try {
     const response = await fetchWithTimeout(`${backendUrl}/api/rag-answer`, {
@@ -194,7 +203,7 @@ async function requestRagAnswer(payload) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(enrichedPayload)
     }, 5000);
 
     if (response.ok) {
@@ -213,6 +222,28 @@ async function requestRagAnswer(payload) {
 
 // Runtime message listener
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'PRAYAS_SYNC_USER_SESSION') {
+    const toStore = {};
+    if (message.user !== undefined) toStore.prayasLoggedInUser = message.user;
+    if (message.passport !== undefined) toStore.passportProfile = message.passport;
+    if (message.documents !== undefined) toStore.userDocuments = message.documents;
+    chrome.storage.local.set(toStore, () => {
+      sendResponse({ success: true, stored: toStore });
+    });
+    return true;
+  }
+
+  if (message.type === 'PRAYAS_GET_USER_SESSION') {
+    chrome.storage.local.get(['prayasLoggedInUser', 'passportProfile', 'userDocuments'], (res) => {
+      sendResponse({
+        user: res.prayasLoggedInUser || null,
+        passport: res.passportProfile || null,
+        documents: res.userDocuments || []
+      });
+    });
+    return true;
+  }
+
   if (message.type === 'PRAYAS_GET_PASSPORT') {
     getPassportProfile().then(sendResponse);
     return true;
@@ -242,3 +273,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 });
+
+// Single In-Page Assistant Panel Toggle Handler
+chrome.action.onClicked.addListener(async (tab) => {
+  if (!tab || !tab.id) return;
+
+  try {
+    // Send toggle command to the active tab's guarded content script
+    const res = await chrome.tabs.sendMessage(tab.id, { type: 'PRAYAS_TOGGLE_PANEL' });
+    if (!res || !res.acknowledged) {
+      throw new Error('Not acknowledged');
+    }
+  } catch (err) {
+    // If content script was not yet loaded (e.g. before extension was installed/reloaded), inject once
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content/content-script.js']
+      });
+      await chrome.scripting.insertCSS({
+        target: { tabId: tab.id },
+        files: ['content/content.css']
+      });
+      setTimeout(() => {
+        chrome.tabs.sendMessage(tab.id, { type: 'PRAYAS_TOGGLE_PANEL' }).catch(() => {});
+      }, 150);
+    } catch (injErr) {
+      console.warn('[PRAYAS 3.0] Action injection note:', injErr.message);
+    }
+  }
+});
+

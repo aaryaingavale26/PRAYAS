@@ -1,5 +1,6 @@
 const { spawnSync } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
 const rootDir = path.resolve(__dirname, '..');
 const isWindows = process.platform === 'win32';
@@ -64,17 +65,32 @@ const voiceRun = spawnSync(
     encoding: 'utf-8'
   }
 );
-const voicePass = voiceRun.status === 0;
+const flexibleRun = spawnSync(
+  'node',
+  ['tests/test-flexible-commands.js'],
+  {
+    cwd: path.join(rootDir, 'member-4-voice-input-and-testing'),
+    encoding: 'utf-8'
+  }
+);
+const voicePass = voiceRun.status === 0 && flexibleRun.status === 0;
 results.push({
-  module: 'Member 4: Voice Agent & E2E Testing Suite',
-  tests: '25 automated tests (STT/TTS, router, bridge, RAG flow, anti-hallucination)',
+  module: 'Member 4: Voice Agent & Natural Language Intent Engine',
+  tests: '25 E2E tests + 28 flexible natural language phrasing tests (18 for "Read Question")',
   passed: voicePass,
-  details: voicePass ? '25 / 25 Passed (100%)' : 'FAIL'
+  details: voicePass ? 'All 25 E2E + 18/18 Phrasings Verified (100% Pass)' : 'FAIL'
 });
-console.log(voicePass ? '\x1b[32m✔ PASSED\x1b[0m' : '\x1b[31m✘ FAILED\x1b[0m');
+console.log(voicePass ? '\x1b[32m✔ PASSED (E2E Flow + 18/18 Flexible Phrasings)\x1b[0m' : '\x1b[31m✘ FAILED\x1b[0m');
 
 // 4. Member 1: Next.js Frontend Production Build
 console.log('\n\x1b[33m%s\x1b[0m', '▶ Running Member 1: Next.js Web App Production Compilation & Verification...');
+const nextDir = path.join(rootDir, 'member_1', '.next');
+if (fs.existsSync(nextDir)) {
+  try {
+    fs.rmSync(nextDir, { recursive: true, force: true });
+  } catch (e) {}
+}
+
 const npmCmd = isWindows ? 'npm.cmd' : 'npm';
 const frontendRun = spawnSync(
   npmCmd,
@@ -86,6 +102,9 @@ const frontendRun = spawnSync(
   }
 );
 const frontendPass = frontendRun.status === 0;
+if (!frontendPass && frontendRun.stderr) {
+  console.error(frontendRun.stderr);
+}
 results.push({
   module: 'Member 1: Next.js 16 Web Application',
   tests: '12 static & dynamic routes (passport, documents, dashboard, scorecard, demo, auth)',

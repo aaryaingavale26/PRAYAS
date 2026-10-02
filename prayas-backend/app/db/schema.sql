@@ -41,6 +41,19 @@ ALTER TABLE public.accessibility_profiles ENABLE ROW LEVEL SECURITY;
 COMMENT ON TABLE public.accessibility_profiles IS 'Stores user accessibility preferences, assistance needs, and disability type for the Accessibility Passport.';
 
 -- -----------------------------------------------------------------------------
+-- 1b. Candidate Passports (Full Accessibility Passport JSON Document)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.passports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE,
+    passport_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.passports ENABLE ROW LEVEL SECURITY;
+COMMENT ON TABLE public.passports IS 'Stores candidate portable accessibility passport profile for autofill and accommodation sharing.';
+
+-- -----------------------------------------------------------------------------
 -- 2. Documents (User resumes, certificates, portfolios for RAG)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.documents (
@@ -84,6 +97,7 @@ COMMENT ON TABLE public.document_chunks IS 'Stores segmented text chunks and 307
 -- Indexes for performance
 -- -----------------------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_accessibility_profiles_user_id ON public.accessibility_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_passports_user_id ON public.passports(user_id);
 CREATE INDEX IF NOT EXISTS idx_documents_user_id ON public.documents(user_id);
 CREATE INDEX IF NOT EXISTS idx_document_chunks_document_id ON public.document_chunks(document_id);
 
@@ -103,6 +117,14 @@ CREATE INDEX IF NOT EXISTS idx_document_chunks_document_id ON public.document_ch
 DROP POLICY IF EXISTS "Users can manage their own accessibility profile" ON public.accessibility_profiles;
 CREATE POLICY "Users can manage their own accessibility profile"
     ON public.accessibility_profiles FOR ALL
+    TO authenticated
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+-- Policies for passports
+DROP POLICY IF EXISTS "Users can manage their own passport" ON public.passports;
+CREATE POLICY "Users can manage their own passport"
+    ON public.passports FOR ALL
     TO authenticated
     USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);
