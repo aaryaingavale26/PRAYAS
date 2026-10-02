@@ -1,0 +1,19 @@
+{
+  "name": "prayas-extension",
+  "version": "1.0.0",
+  "description": "PRAYAS 3.0 Manifest V3 Chrome Extension - Accessible Job Application Assistant",
+  "main": "background/service-worker.js",
+  "scripts": {
+    "test": "node tests/run-all-tests.js",
+    "test:extraction": "node tests/test-extraction.js",
+    "test:audit": "node tests/test-audit.js",
+    "test:repairs": "node tests/test-repairs.js",
+    "test:autofill": "node tests/test-autofill.js",
+    "test:backend": "node tests/test-backend.js",
+    "test:scorecard": "node tests/test-scorecard.js",
+    "test:voice": "node tests/test-voice.js",
+    "lint": "node -c content/content-script.js popup/popup.js background/service-worker.js"
+  },
+  "author": "Team ByteShastra (Member 3: Chrome Extension & DOM)",
+  "license": "MIT"
+}
