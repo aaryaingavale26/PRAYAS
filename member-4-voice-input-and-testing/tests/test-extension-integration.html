@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRAYAS 3.0 — Chrome Extension Integration Workbench (Stage 3)</title>
+  <style>
+    :root {
+      --bg: #090e1a;
+      --card-bg: #111a2e;
+      --card-border: #1e2e4f;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --focus-ring: #38bdf8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      padding: 24px;
+      line-height: 1.5;
+    }
+
+    header {
+      max-width: 1040px;
+      margin: 0 auto 20px auto;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge-stage {
+      background: #059669;
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      margin-top: 6px;
+      font-size: 0.95rem;
+    }
+
+    main {
+      max-width: 1040px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 860px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-full { grid-column: 1 / -1; }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Connection Status Pill */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      background: #1e293b;
+      color: #cbd5e1;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #64748b;
+    }
+
+    .status-pill.connected {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid #10b981;
+    }
+    .status-pill.connected .status-dot { background: #10b981; }
+
+    .status-pill.fallback {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid #f59e0b;
+    }
+    .status-pill.fallback .status-dot { background: #f59e0b; }
+
+    .status-pill.error {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid #ef4444;
+    }
+    .status-pill.error .status-dot { background: #ef4444; }
+
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 14px;
+      background: #070b14;
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: 3px solid var(--focus-ring);
+      border-color: transparent;
+      background: #0f1c34;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+
+    .btn:focus-visible { outline: 3px solid var(--focus-ring); }
+
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { background: #b91c1c; }
+
+    .btn-secondary { background: #1e293b; color: #f1f5f9; border: 1px solid #334155; }
+    .btn-secondary:hover { background: #334155; }
+
+    .kbd {
+      background: #020617;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      border: 1px solid #334155;
+      color: #94a3b8;
+    }
+
+    /* Log Box */
+    .event-log {
+      background: #060912;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .log-item { padding: 4px 0; border-bottom: 1px solid #141c2e; }
+    .log-item.sent { color: #38bdf8; }
+    .log-item.recv { color: #34d399; }
+    .log-item.err { color: #f87171; }
+    .log-item.warn { color: #fbbf24; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>
+      <span>🧩 PRAYAS 3.0 Chrome Extension Bridge</span>
+      <span class="badge-stage">Stage 3 Integration</span>
+    </h1>
+    <p class="subtitle">
+      Voice agent integration with Chrome Extension Manifest V3 messaging contract, handling field navigation, autofill, and error recovery.
+    </p>
+  </header>
+
+  <main>
+    <!-- Left Column: Target Webpage Form (Simulated Content Script Target) -->
+    <section class="card" aria-labelledby="form-section-title">
+      <div class="card-title">
+        <h2 id="form-section-title">Host Application Form</h2>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Controlled by Extension Content Script</span>
+      </div>
+
+      <form id="active-job-form" onsubmit="event.preventDefault();">
+        <div class="form-group">
+          <label for="applicant-name">1. Full Legal Name <span style="color: #f87171;">*</span></label>
+          <input type="text" id="applicant-name" name="name" placeholder="Enter your full name">
+        </div>
+
+        <div class="form-group">
+          <label for="applicant-email">2. Email Address <span style="color: #f87171;">*</span></label>
+          <input type="email" id="applicant-email" name="email" placeholder="name@example.com">
+        </div>
+
+        <div class="form-group">
+          <label for="applicant-phone">3. Mobile Phone Number <span style="color: #f87171;">*</span></label>
+          <input type="tel" id="applicant-phone" name="phone" placeholder="+1 (555) 000-0000">
+        </div>
+
+        <div class="form-group">
+          <label for="applicant-experience">4. Professional Experience <span style="color: #f87171;">*</span></label>
+          <select id="applicant-experience" name="experience">
+            <option value="">Select years of experience...</option>
+            <option value="Entry Level (0-2 years)">Entry Level (0-2 years)</option>
+            <option value="Mid-Level (3-5 years)">Mid-Level (3-5 years)</option>
+            <option value="Senior Level (5+ years)">Senior Level (5+ years)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="applicant-q1">5. Technical Question <span style="color: #f87171;">*</span></label>
+          <textarea id="applicant-q1" name="technical_q1" rows="3" placeholder="Describe how you have used accessible web components in production..."></textarea>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button type="button" id="btn-clear-fields" class="btn btn-secondary">
+            Clear Form
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Right Column: Voice & Extension Bridge Controls -->
+    <section class="card" aria-labelledby="bridge-controls-title">
+      <div class="card-title">
+        <h2 id="bridge-controls-title">Extension Bridge Controller</h2>
+        <div id="conn-status-badge" class="status-pill" role="status" aria-live="polite">
+          <span class="status-dot"></span>
+          <span id="conn-status-text">INITIALIZING</span>
+        </div>
+      </div>
+
+      <!-- Voice Activation Button -->
+      <button id="btn-voice-mic" class="btn btn-primary" style="width: 100%; margin-bottom: 16px; padding: 12px; font-size: 1rem;">
+        🎤 Start Voice Control <span class="kbd" style="margin-left: 8px;">Alt+M</span>
+      </button>
+
+      <!-- Simulated Fault Injection Controls -->
+      <div style="background: #090e1a; padding: 12px; border-radius: 8px; border: 1px solid var(--card-border); margin-bottom: 16px;">
+        <span style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 8px;">
+          Fault Injection / Testing Controls:
+        </span>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button id="btn-toggle-disconnect" class="btn btn-secondary" style="font-size: 0.8rem; padding: 6px 12px;">
+            Simulate Extension Disconnect
+          </button>
+          <button id="btn-reconnect" class="btn btn-secondary" style="font-size: 0.8rem; padding: 6px 12px;">
+            Reconnect Bridge
+          </button>
+        </div>
+      </div>
+
+      <h3 style="font-size: 0.95rem; margin-bottom: 8px; color: #cbd5e1;">Extension Message Triggers</h3>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <button id="btn-msg-next" class="btn btn-secondary" style="justify-content: space-between;">
+          <span>NAVIGATE_NEXT ("Next field")</span>
+          <span class="kbd">Alt+N</span>
+        </button>
+        <button id="btn-msg-prev" class="btn btn-secondary" style="justify-content: space-between;">
+          <span>NAVIGATE_PREVIOUS ("Previous field")</span>
+          <span class="kbd">Alt+B</span>
+        </button>
+        <button id="btn-msg-read-field" class="btn btn-secondary" style="justify-content: space-between;">
+          <span>READ_CURRENT_FIELD ("Read question")</span>
+          <span class="kbd">Alt+R</span>
+        </button>
+        <button id="btn-msg-read-page" class="btn btn-secondary" style="justify-content: space-between;">
+          <span>READ_PAGE ("Read this page")</span>
+          <span class="kbd">Alt+W</span>
+        </button>
+        <button id="btn-msg-fill" class="btn btn-secondary" style="justify-content: space-between;">
+          <span>FILL_PROFILE_DETAILS ("Fill my details")</span>
+          <span class="kbd">Alt+F</span>
+        </button>
+        <button id="btn-msg-stop" class="btn btn-danger" style="justify-content: space-between;">
+          <span>STOP_READING ("Stop reading")</span>
+          <span class="kbd">Esc</span>
+        </button>
+      </div>
+
+      <h3 style="font-size: 0.95rem; margin-top: 18px; margin-bottom: 6px; color: #cbd5e1;">Bridge Traffic Log</h3>
+      <div id="bridge-log" class="event-log" role="log" aria-live="polite">
+        <div class="log-item">[Ready] Bridge initialized.</div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { SpeechRecognizer, RecognitionState } from '../src/voice/speech-recognizer.js';
+    import { SpeechSynthesizer } from '../src/voice/speech-synthesizer.js';
+    import { CommandRouter } from '../src/commands/command-router.js';
+    import { IntentType } from '../src/commands/command-definitions.js';
+    import { ExtensionBridge, ConnectionStatus } from '../src/bridge/extension-bridge.js';
+    import { MockContentScript } from './mock-extension-content-script.js';
+
+    // DOM Elements
+    const connBadge = document.getElementById('conn-status-badge');
+    const connStatusText = document.getElementById('conn-status-text');
+    const bridgeLog = document.getElementById('bridge-log');
+    const btnVoiceMic = document.getElementById('btn-voice-mic');
+    const btnToggleDisconnect = document.getElementById('btn-toggle-disconnect');
+    const btnReconnect = document.getElementById('btn-reconnect');
+    const btnClearFields = document.getElementById('btn-clear-fields');
+
+    // Instantiate Engines
+    const recognizer = new SpeechRecognizer({ lang: 'en-US', continuous: false });
+    const synthesizer = new SpeechSynthesizer({ rate: 1.0 });
+    const router = new CommandRouter({ synthesizer });
+
+    // Mock Content Script representing Member 2's DOM agent
+    let mockContentScript = new MockContentScript();
+    let isForcedDisconnected = false;
+
+    // Custom mock handler to simulate Member 2's listener
+    const mockHandler = {
+      handleMessage: (message) => {
+        if (isForcedDisconnected) {
+          throw new Error('Receiving end does not exist. (Extension content script detached)');
+        }
+        return mockContentScript.handleMessage(message);
+      }
+    };
+
+    // Instantiate ExtensionBridge with mock handler fallback
+    const bridge = new ExtensionBridge({
+      timeoutMs: 3000,
+      allowFallback: true,
+      mockHandler: mockHandler
+    });
+
+    function log(msg, type = 'info') {
+      const time = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = `log-item ${type}`;
+      div.textContent = `[${time}] ${msg}`;
+      bridgeLog.prepend(div);
+    }
+
+    // Update Connection Badge UI
+    function updateConnectionBadge(status) {
+      connStatusText.textContent = status;
+      connBadge.className = 'status-pill';
+
+      if (status === ConnectionStatus.CONNECTED) {
+        connBadge.classList.add('connected');
+      } else if (status === ConnectionStatus.FALLBACK_MOCK) {
+        connBadge.classList.add('fallback');
+      } else {
+        connBadge.classList.add('error');
+      }
+    }
+
+    bridge.onStatusChange = (status, lastError) => {
+      updateConnectionBadge(status);
+      if (lastError) {
+        log(`Status: ${status} | Notice: ${lastError}`, 'warn');
+      } else {
+        log(`Status changed to: ${status}`, 'recv');
+      }
+    };
+
+    // Check Bridge connection on start
+    await bridge.checkConnection();
+
+    // WIRE COMMAND ROUTER ACTIONS DIRECTLY TO EXTENSION BRIDGE
+
+    // 1. Next Field
+    router.registerAction(IntentType.NEXT_FIELD, async () => {
+      try {
+        log('Dispatching: NAVIGATE_NEXT', 'sent');
+        const res = await bridge.navigateNext();
+        log(`Received: ${JSON.stringify(res.field)}`, 'recv');
+        await synthesizer.speak(`Moved to field ${res.index + 1} of ${res.total}: ${res.field.label}.`);
+      } catch (err) {
+        log(`Bridge error: ${err.message}`, 'err');
+        await synthesizer.speak("Could not reach the application form. Please make sure the tab is active.");
+      }
+    });
+
+    // 2. Previous Field
+    router.registerAction(IntentType.PREV_FIELD, async () => {
+      try {
+        log('Dispatching: NAVIGATE_PREVIOUS', 'sent');
+        const res = await bridge.navigatePrevious();
+        log(`Received: ${JSON.stringify(res.field)}`, 'recv');
+        await synthesizer.speak(`Moved back to field ${res.index + 1} of ${res.total}: ${res.field.label}.`);
+      } catch (err) {
+        log(`Bridge error: ${err.message}`, 'err');
+        await synthesizer.speak("Could not reach the application form.");
+      }
+    });
+
+    // 3. Read Question
+    router.registerAction(IntentType.READ_QUESTION, async () => {
+      try {
+        log('Dispatching: READ_CURRENT_FIELD', 'sent');
+        const res = await bridge.readCurrentField();
+        const f = res.field;
+        const speech = `${f.label}. ${f.required ? 'This field is required.' : ''} ${f.currentValue ? 'Current value is: ' + f.currentValue : ''}`;
+        await synthesizer.speak(speech);
+      } catch (err) {
+        log(`Bridge error: ${err.message}`, 'err');
+        await synthesizer.speak("Unable to read current field.");
+      }
+    });
+
+    // 4. Read Page
+    router.registerAction(IntentType.READ_PAGE, async () => {
+      try {
+        log('Dispatching: READ_PAGE', 'sent');
+        const res = await bridge.readPage();
+        const speech = `${res.summary.pageTitle}. This application contains ${res.summary.totalFields} fields. You are currently on field ${res.summary.currentFieldIndex}.`;
+        await synthesizer.speak(speech);
+      } catch (err) {
+        log(`Bridge error: ${err.message}`, 'err');
+        await synthesizer.speak("Unable to read page summary.");
+      }
+    });
+
+    // 5. Fill Details
+    router.registerAction(IntentType.FILL_DETAILS, async () => {
+      try {
+        log('Dispatching: FILL_PROFILE_DETAILS', 'sent');
+        const res = await bridge.fillProfileDetails();
+        log(`Autofilled fields: ${res.fieldsUpdated.join(', ')}`, 'recv');
+        await synthesizer.speak(res.message);
+      } catch (err) {
+        log(`Bridge error: ${err.message}`, 'err');
+        await synthesizer.speak("Could not autofill profile details.");
+      }
+    });
+
+    // 6. Stop Reading
+    router.registerAction(IntentType.STOP_READING, async () => {
+      synthesizer.stop();
+      log('Speech stopped.', 'warn');
+    });
+
+    // Speech Recognizer Events
+    recognizer.onTranscript = async ({ transcript, isFinal }) => {
+      if (isFinal) {
+        log(`Spoken command: "${transcript}"`, 'info');
+        await router.execute(transcript);
+      }
+    };
+
+    recognizer.onStateChange = (state) => {
+      if (state === RecognitionState.LISTENING) {
+        btnVoiceMic.style.background = '#dc2626';
+        btnVoiceMic.innerHTML = '🔴 Listening... (Speak Now) <span class="kbd" style="margin-left: 8px;">Alt+M</span>';
+      } else {
+        btnVoiceMic.style.background = 'var(--primary)';
+        btnVoiceMic.innerHTML = '🎤 Start Voice Control <span class="kbd" style="margin-left: 8px;">Alt+M</span>';
+      }
+    };
+
+    btnVoiceMic.addEventListener('click', () => {
+      if (recognizer.state === RecognitionState.LISTENING) {
+        recognizer.stop();
+      } else {
+        recognizer.start();
+      }
+    });
+
+    // Manual Testing Buttons for All Actions
+    document.getElementById('btn-msg-next').addEventListener('click', () => router.execute('next field'));
+    document.getElementById('btn-msg-prev').addEventListener('click', () => router.execute('previous field'));
+    document.getElementById('btn-msg-read-field').addEventListener('click', () => router.execute('read question'));
+    document.getElementById('btn-msg-read-page').addEventListener('click', () => router.execute('read this page'));
+    document.getElementById('btn-msg-fill').addEventListener('click', () => router.execute('fill my details'));
+    document.getElementById('btn-msg-stop').addEventListener('click', () => router.execute('stop reading'));
+
+    // Fault Injection
+    btnToggleDisconnect.addEventListener('click', () => {
+      isForcedDisconnected = !isForcedDisconnected;
+      if (isForcedDisconnected) {
+        btnToggleDisconnect.textContent = 'Restore Content Script';
+        btnToggleDisconnect.style.background = '#b91c1c';
+        updateConnectionBadge(ConnectionStatus.ERROR);
+        log('Forced disconnect active: Extension content script simulates missing tab/crashed.', 'err');
+      } else {
+        btnToggleDisconnect.textContent = 'Simulate Extension Disconnect';
+        btnToggleDisconnect.style.background = '#1e293b';
+        updateConnectionBadge(ConnectionStatus.FALLBACK_MOCK);
+        log('Content script re-attached.', 'recv');
+      }
+    });
+
+    btnReconnect.addEventListener('click', async () => {
+      isForcedDisconnected = false;
+      btnToggleDisconnect.textContent = 'Simulate Extension Disconnect';
+      btnToggleDisconnect.style.background = '#1e293b';
+      await bridge.checkConnection();
+      log('Re-check connection executed.', 'info');
+    });
+
+    btnClearFields.addEventListener('click', () => {
+      document.getElementById('active-job-form').reset();
+      log('Form fields cleared.', 'info');
+    });
+
+    // Global Keyboard Shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.altKey && (e.key === 'm' || e.key === 'M')) { e.preventDefault(); btnVoiceMic.click(); }
+      else if (e.altKey && (e.key === 'n' || e.key === 'N')) { e.preventDefault(); router.execute('next field'); }
+      else if (e.altKey && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); router.execute('previous field'); }
+      else if (e.altKey && (e.key === 'r' || e.key === 'R')) { e.preventDefault(); router.execute('read question'); }
+      else if (e.altKey && (e.key === 'w' || e.key === 'W')) { e.preventDefault(); router.execute('read this page'); }
+      else if (e.altKey && (e.key === 'f' || e.key === 'F')) { e.preventDefault(); router.execute('fill my details'); }
+      else if (e.key === 'Escape') { router.execute('stop reading'); }
+    });
+  </script>
+</body>
+</html>

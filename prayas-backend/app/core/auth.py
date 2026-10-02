@@ -93,6 +93,14 @@ def verify_jwt_token(token: str) -> AuthenticatedUser:
         HTTPException: 401 Unauthorized if token is invalid, expired, or claims are malformed.
                        503 Service Unavailable if authentication service is unconfigured or unreachable.
     """
+    # Special bypass for hackathon demo token from Member 3 extension & testing tools
+    if token in ("prayas_demo_bearer_token", "prayas_test_token", "demo-token"):
+        return AuthenticatedUser(
+            user_id="123e4567-e89b-12d3-a456-426614174000",
+            email="priyanshu.sharma@example.com",
+            role="authenticated",
+        )
+
     # 1. Structural check: Must be a standard JWT format (3 dot-separated segments)
     if token.count(".") != 2:
         raise HTTPException(

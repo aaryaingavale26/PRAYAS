@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRAYAS 3.0 — 3-Minute Presentation Deck & Live Demo Console (Stage 8)</title>
+  <style>
+    :root {
+      --bg: #070d1e;
+      --card-bg: #0f1933;
+      --card-border: #1e2f57;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --focus-ring: #38bdf8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 24px;
+      line-height: 1.6;
+    }
+
+    header {
+      max-width: 1100px;
+      margin: 0 auto 20px auto;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge-stage {
+      background: #8b5cf6;
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+    }
+
+    /* Live Countdown Timer */
+    .timer-box {
+      background: #111e3b;
+      border: 2px solid #3b82f6;
+      border-radius: 12px;
+      padding: 8px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .timer-display {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+
+    .timer-display.warning { color: #fbbf24; animation: blink 1s infinite; }
+    .timer-display.danger { color: #f87171; animation: blink 0.5s infinite; }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 22px;
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Slide Stepper */
+    .slide-section {
+      margin-bottom: 24px;
+      padding: 16px;
+      background: #091124;
+      border-left: 4px solid #3b82f6;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .slide-section.active {
+      border-left-color: #10b981;
+      background: #08172c;
+    }
+
+    .slide-time {
+      font-size: 0.75rem;
+      color: #38bdf8;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .slide-heading {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .slide-script {
+      font-size: 0.92rem;
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+
+    .slide-action {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: #111a33;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      color: #fbbf24;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease;
+      color: #fff;
+    }
+
+    .btn:focus-visible { outline: 3px solid var(--focus-ring); }
+    .btn-primary { background: var(--primary); }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; }
+    .btn-secondary:hover { background: #334155; }
+    .btn-danger { background: var(--danger); }
+
+    /* Contingency Fail-Safe Table */
+    .contingency-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin-top: 10px;
+    }
+
+    .contingency-table th, .contingency-table td {
+      padding: 8px 10px;
+      border: 1px solid var(--card-border);
+      text-align: left;
+    }
+
+    .contingency-table th {
+      background: #091124;
+      color: #38bdf8;
+    }
+
+    /* Architecture summary box */
+    .arch-box {
+      background: #091124;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <h1>
+        <span>🏆 PRAYAS 3.0 Presentation Console</span>
+        <span class="badge-stage">Stage 8 Demo</span>
+      </h1>
+      <p style="color: var(--text-muted); margin-top: 4px; font-size: 0.92rem;">
+        Synchronized 3-minute pitch timer, teleprompter script, 1-click live demo triggers, and auditorium backup contingency.
+      </p>
+    </div>
+
+    <!-- 3-Minute Live Timer -->
+    <div class="timer-box">
+      <div>
+        <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Pitch Timer</div>
+        <div id="timer-display" class="timer-display">03:00</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <button id="btn-timer-start" class="btn btn-primary" style="padding: 4px 10px; font-size: 0.75rem;">Start</button>
+        <button id="btn-timer-reset" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;">Reset</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Left Column: Chronological Script (Teleprompter) -->
+    <section class="card" aria-labelledby="script-heading">
+      <div class="card-title">
+        <h2 id="script-heading">Verbatim Presentation Script (180 Seconds)</h2>
+      </div>
+
+      <!-- Part 1: 0:00 - 0:35 -->
+      <div class="slide-section active" id="sec-1">
+        <div class="slide-time">0:00 – 0:35 &bull; The Problem & Vision</div>
+        <div class="slide-heading">1. Digital Inaccessibility in Hiring</div>
+        <p class="slide-script">
+          "Over 1.3 billion people live with disabilities worldwide, yet over 95% of job application portals fail basic accessibility audits. Missing labels, broken tab sequences, and intimidating essay questions force qualified candidates with motor, visual, or cognitive disabilities to abandon their applications.<br><br>
+          <strong>PRAYAS 3.0</strong> is an AI-powered accessibility equalizer. It doesn't ask companies to rebuild their websites; instead, it runs directly over existing portals, giving candidates full voice control, verified passport autofill, and assistive AI draft generation grounded strictly in their actual resume."
+        </p>
+      </div>
+
+      <!-- Part 2: 0:35 - 1:15 -->
+      <div class="slide-section" id="sec-2">
+        <div class="slide-time">0:35 – 1:15 &bull; Live Demo: Navigation & Autofill</div>
+        <div class="slide-heading">2. Voice Navigation & Passport Autofill</div>
+        <p class="slide-script">
+          "On our live demo portal, notice Field 3 lacks an accessible label, and Field 4 has a broken keyboard tab trap. When the candidate speaks <em>'Next field'</em>, PRAYAS navigates semantically, bypassing the broken tab order. When they say <em>'Read question'</em>, PRAYAS extracts the element's metadata and reads it aloud.<br><br>
+          With a single command—<em>'Fill my details'</em>—PRAYAS populates Name, Email, Phone, and Experience directly from their verified Accessibility Passport, saving exhaustive repetitive typing."
+        </p>
+        <div class="slide-action">
+          <span>🎬 Live Action:</span> Click "Simulate Autofill" or say "Fill my details" on demo form.
+        </div>
+      </div>
+
+      <!-- Part 3: 1:15 - 2:05 -->
+      <div class="slide-section" id="sec-3">
+        <div class="slide-time">1:15 – 2:05 &bull; Live Demo: Conversational RAG</div>
+        <div class="slide-heading">3. AI Conversational Agent & RAG Grounding</div>
+        <p class="slide-script">
+          "For the behavioral essay question in Field 5, PRAYAS initiates a respectful 7-step dialog. It reads the prompt, asks candidate consent, and connects to our FastAPI backend to generate a personalized draft backed by vector citations from their uploaded resume.<br><br>
+          Crucially, <strong>PRAYAS never hallucinates experiences</strong>. If a topic is absent from the resume, it pauses and prompts the user for clarification. The draft is read aloud, and only inserted into the field once the candidate explicitly approves it."
+        </p>
+        <div class="slide-action">
+          <span>🎬 Live Action:</span> Press Alt+H on Field 5 &rarr; Consent Yes &rarr; Review draft citations &rarr; Accept.
+        </div>
+      </div>
+
+      <!-- Part 4: 2:05 - 2:35 -->
+      <div class="slide-section" id="sec-4">
+        <div class="slide-time">2:05 – 2:35 &bull; Architecture & Safety</div>
+        <div class="slide-heading">4. Architecture & Safeguards</div>
+        <p class="slide-script">
+          "Our system is built on two strict safety principles:
+          <br>1. <strong>Zero Auto-Submission Guarantee:</strong> PRAYAS will <em>never</em> automatically submit an application. The candidate retains final human agency to review and click submit.
+          <br>2. <strong>100% Keyboard Parity:</strong> Every voice command has an instantaneous keyboard equivalent (Alt+M, Alt+N, Alt+F, Alt+H) alongside a manual text input for non-verbal users."
+        </p>
+      </div>
+
+      <!-- Part 5: 2:35 - 3:00 -->
+      <div class="slide-section" id="sec-5">
+        <div class="slide-time">2:35 – 3:00 &bull; Impact & Limitations</div>
+        <div class="slide-heading">5. Impact, Limitations & Roadmap</div>
+        <p class="slide-script">
+          "<strong>Current Limitations:</strong> This 36-hour prototype utilizes Chromium's Web Speech API, which requires an active internet connection. In our production roadmap, we are integrating local Whisper on-device models for privacy in air-gapped environments and expanding to regional multi-lingual support.<br><br>
+          PRAYAS 3.0 returns dignity, speed, and autonomy to candidates with disabilities. Thank you!"
+        </p>
+      </div>
+    </section>
+
+    <!-- Right Column: Quick Demo Launchers & Auditorium Fail-Safe -->
+    <aside style="display: flex; flex-direction: column; gap: 20px;">
+      <!-- Quick Demo Launcher Card -->
+      <div class="card" aria-labelledby="launcher-heading">
+        <div class="card-title">
+          <h2 id="launcher-heading">1-Click Demo Launcher</h2>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+          Open the live demo application form in a new tab:
+        </p>
+        <button id="btn-open-demo" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 0.95rem; justify-content: center;">
+          🚀 Open Live Demo Form Portal
+        </button>
+      </div>
+
+      <!-- Architecture & Contract Overview -->
+      <div class="card" aria-labelledby="arch-heading">
+        <div class="card-title">
+          <h2 id="arch-heading">Decoupled Architecture</h2>
+        </div>
+        <div class="arch-box">
+          <strong>Member 2 &bull; Chrome Extension:</strong> Content script DOM inspection, field focus, non-destructive value insertion.<br><br>
+          <strong>Member 3 &bull; FastAPI Backend:</strong> RAG vector search over resume chunks, Gemini draft generation with citation tags.<br><br>
+          <strong>Member 4 &bull; Voice & Testing Engine:</strong> Web Speech STT/TTS, command routing, conversational flow, accessible fallbacks, and 25-point test harness.
+        </div>
+      </div>
+
+      <!-- Auditorium Contingency Plan -->
+      <div class="card" aria-labelledby="contingency-heading">
+        <div class="card-title">
+          <h2 id="contingency-heading">Auditorium Stage Fallback Matrix</h2>
+        </div>
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px;">
+          Immediate presenter actions if hardware or network fails on stage:
+        </p>
+        <table class="contingency-table">
+          <thead>
+            <tr>
+              <th>Emergency Scenario</th>
+              <th>Presenter Fallback Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Loud background noise</strong></td>
+              <td>Use keyboard shortcuts (<strong>Alt+N</strong>, <strong>Alt+F</strong>, <strong>Alt+H</strong>). The UI performs identical spoken feedback.</td>
+            </tr>
+            <tr>
+              <td><strong>Mic permission blocked</strong></td>
+              <td>Use the <strong>Quick Action Buttons</strong> on the floating assistant bar.</td>
+            </tr>
+            <tr>
+              <td><strong>FastAPI Wi-Fi down</strong></td>
+              <td>The extension bridge automatically runs in <strong>Offline Fallback Mode</strong> without latency.</td>
+            </tr>
+            <tr>
+              <td><strong>Auditorium audio too quiet</strong></td>
+              <td>Point judges to the <strong>Floating Feedback HUD</strong>; every utterance is displayed in high-contrast text.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    // 3-Minute Countdown Timer Logic
+    let totalSeconds = 180;
+    let timerInterval = null;
+    const timerDisplay = document.getElementById('timer-display');
+    const btnStart = document.getElementById('btn-timer-start');
+    const btnReset = document.getElementById('btn-timer-reset');
+    const btnOpenDemo = document.getElementById('btn-open-demo');
+
+    function updateTimer() {
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+      if (totalSeconds <= 60 && totalSeconds > 30) {
+        timerDisplay.className = 'timer-display warning';
+      } else if (totalSeconds <= 30) {
+        timerDisplay.className = 'timer-display danger';
+      } else {
+        timerDisplay.className = 'timer-display';
+      }
+
+      if (totalSeconds > 0) {
+        totalSeconds--;
+      } else {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        btnStart.textContent = 'Start';
+      }
+    }
+
+    btnStart.addEventListener('click', () => {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        btnStart.textContent = 'Resume';
+      } else {
+        timerInterval = setInterval(updateTimer, 1000);
+        btnStart.textContent = 'Pause';
+      }
+    });
+
+    btnReset.addEventListener('click', () => {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      totalSeconds = 180;
+      timerDisplay.textContent = '03:00';
+      timerDisplay.className = 'timer-display';
+      btnStart.textContent = 'Start';
+    });
+
+    btnOpenDemo.addEventListener('click', () => {
+      window.open('http://localhost:3000/demo/job-application.html', '_blank');
+    });
+  </script>
+</body>
+</html>

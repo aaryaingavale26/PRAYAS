@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TechCorp - Job Application Demo | PRAYAS 3.0</title>
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-focus: #1d4ed8;
+      --bg-page: #f1f5f9;
+      --bg-surface: #ffffff;
+      --border: #cbd5e1;
+      --text: #0f172a;
+      --text-muted: #475569;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+      background: var(--bg-surface);
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .badge {
+      display: inline-block;
+      background-color: #dbeafe;
+      color: var(--primary);
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    h1 {
+      font-size: 1.75rem;
+      color: var(--primary);
+      margin-bottom: 0.25rem;
+    }
+    .company {
+      font-size: 1rem;
+      color: var(--text-muted);
+    }
+    .banner {
+      background-color: #f8fafc;
+      border-left: 4px solid var(--primary);
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      border-radius: 0 6px 6px 0;
+    }
+    fieldset {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    legend {
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--primary);
+      padding: 0 0.5rem;
+    }
+    .form-group {
+      margin-bottom: 1.25rem;
+      display: flex;
+      flex-direction: column;
+    }
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+    label {
+      font-size: 0.92rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+      color: var(--text);
+    }
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="url"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      color: var(--text);
+      background-color: #fff;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary-focus);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-top: 0.5rem;
+    }
+    .checkbox-group input {
+      width: 1.15rem;
+      height: 1.15rem;
+      accent-color: var(--primary);
+    }
+    .actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 1.5rem;
+    }
+    .btn {
+      padding: 0.75rem 1.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      border: none;
+      transition: background-color 0.15s, transform 0.05s;
+    }
+    .btn-primary {
+      background-color: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background-color: var(--primary-focus);
+    }
+    .btn-secondary {
+      background-color: #e2e8f0;
+      color: var(--text);
+    }
+    .btn-secondary:hover {
+      background-color: #cbd5e1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <span class="badge">Demo Portal &bull; PRAYAS 3.0</span>
+      <h1>Senior Frontend Accessibility Engineer</h1>
+      <p class="company">TechCorp Global Systems &bull; Bengaluru / Remote</p>
+    </header>
+
+    <div class="banner">
+      <strong>Controlled Test Environment:</strong> Use this page to verify PRAYAS 3.0 form detection, field labeling, and accessibility auditing.
+    </div>
+
+    <form id="jobApplicationForm" action="#" method="POST" novalidate>
+      <!-- Section 1: Candidate Identity -->
+      <fieldset>
+        <legend>Personal Information</legend>
+
+        <div class="form-group">
+          <label for="fullName">Full Name <span aria-hidden="true">*</span></label>
+          <input type="text" id="fullName" name="fullName" placeholder="e.g. Priyanshu Sharma" required autocomplete="name">
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email Address <span aria-hidden="true">*</span></label>
+          <input type="email" id="email" name="email" placeholder="priyanshu@example.com" required autocomplete="email">
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Phone Number <span aria-hidden="true">*</span></label>
+          <input type="tel" id="phone" name="phone" placeholder="+91 98765 43210" required autocomplete="tel">
+        </div>
+
+        <div class="form-group">
+          <label for="currentCity">Current City</label>
+          <input type="text" id="currentCity" name="currentCity" placeholder="Bengaluru, Karnataka" autocomplete="address-level2">
+        </div>
+      </fieldset>
+
+      <!-- Section 2: Professional Background -->
+      <fieldset>
+        <legend>Professional Details</legend>
+
+        <div class="form-group">
+          <label for="portfolioUrl">Portfolio / GitHub / LinkedIn URL</label>
+          <input type="url" id="portfolioUrl" name="portfolioUrl" placeholder="https://github.com/priyanshu" autocomplete="url">
+        </div>
+
+        <div class="form-group">
+          <label for="experienceLevel">Years of Relevant Experience</label>
+          <select id="experienceLevel" name="experienceLevel">
+            <option value="">-- Please select --</option>
+            <option value="entry">0-2 years (Entry Level)</option>
+            <option value="mid">3-5 years (Mid-Senior)</option>
+            <option value="senior">6-10 years (Senior)</option>
+            <option value="lead">10+ years (Lead / Architect)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="professionalSummary">Professional Summary & Interest</label>
+          <textarea id="professionalSummary" name="professionalSummary" rows="3" placeholder="Briefly describe your background and why you are applying..."></textarea>
+        </div>
+      </fieldset>
+
+      <!-- Section 3: Workplace Accommodations (Optional) -->
+      <fieldset>
+        <legend>Accessibility & Accommodations (Optional)</legend>
+        
+        <div class="form-group">
+          <label for="accommodations">Workplace Accommodation Requests</label>
+          <textarea id="accommodations" name="accommodations" rows="2" placeholder="e.g. Screen reader compatible tooling, high-contrast display, flexible interview pacing"></textarea>
+        </div>
+
+        <div class="checkbox-group">
+          <input type="checkbox" id="remotePreference" name="remotePreference" value="yes">
+          <label for="remotePreference">I prefer a fully remote or hybrid setup</label>
+        </div>
+      </fieldset>
+
+      <!-- Section 4: Dynamic References (For MutationObserver Testing) -->
+      <fieldset id="dynamicSection" style="display: none; border-style: dashed; border-color: #2563eb;">
+        <legend style="color: #2563eb;">Dynamic Reference Contact</legend>
+        <div class="form-group">
+          <label for="refName">Reference Contact Name <span aria-hidden="true">*</span></label>
+          <input type="text" id="refName" name="refName" placeholder="Dr. Jane Smith" required>
+        </div>
+        <div class="form-group">
+          <label for="refEmail">Reference Email Address <span aria-hidden="true">*</span></label>
+          <input type="email" id="refEmail" name="refEmail" placeholder="jane.smith@example.org" required>
+        </div>
+        <div class="form-group">
+          <label for="refRelationship">Professional Relationship</label>
+          <select id="refRelationship" name="refRelationship">
+            <option value="">-- Select relationship --</option>
+            <option value="manager">Former Manager / Supervisor</option>
+            <option value="colleague">Peer / Colleague</option>
+            <option value="mentor">Mentor / Academic Advisor</option>
+          </select>
+        </div>
+      </fieldset>
+
+      <div style="margin-bottom: 1.5rem;">
+        <button type="button" id="toggleDynamicBtn" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+          + Add Reference Contact (Tests MutationObserver)
+        </button>
+      </div>
+
+      <!-- Section 5: Controlled Accessibility Audit Test Cases -->
+      <fieldset style="border-color: #f59e0b; background-color: #fffbeb;">
+        <legend style="color: #b45309;">Accessibility Test Scenarios (Audit Verification)</legend>
+        <p style="font-size: 0.85rem; color: #78350f; margin-bottom: 1rem;">
+          These fields contain intentionally varied real-world accessibility conditions to verify PRAYAS audit accuracy:
+        </p>
+
+        <!-- Scenario 1: Definitive Missing Label -->
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <span style="font-size: 0.8rem; font-weight: 700; color: #b91c1c;">Definitive Flaw: No Label, No ARIA</span>
+          <input type="text" id="referralCode" name="referralCode" style="margin-top: 4px;">
+        </div>
+
+        <!-- Scenario 2: Uncertain - Placeholder Only -->
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <span style="font-size: 0.8rem; font-weight: 700; color: #b45309;">Uncertain / Warning: Placeholder As Only Label</span>
+          <input type="text" id="emergencyContact" name="emergencyContact" placeholder="Emergency contact name & phone" style="margin-top: 4px;">
+        </div>
+
+        <!-- Scenario 3: Definitive Empty Label -->
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <span style="font-size: 0.8rem; font-weight: 700; color: #b91c1c;">Definitive Flaw: Empty Label Tag</span>
+          <label for="emptyLabelField"></label>
+          <input type="text" id="emptyLabelField" name="emptyLabelField" style="margin-top: 4px;">
+        </div>
+
+        <!-- Scenario 4: Definitive Icon-only Button without Name -->
+        <div class="form-group">
+          <span style="font-size: 0.8rem; font-weight: 700; color: #b91c1c;">Definitive Flaw: Icon-Only Button Without Accessible Text</span>
+          <div style="margin-top: 4px;">
+            <button type="button" id="iconOnlyAttachBtn" style="padding: 6px 12px; background: #e2e8f0; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle;"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 0 1 5 0v10.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5V6H9v9.5a3.5 3.5 0 0 0 7 0V5a4.5 4.5 0 0 0-9 0v12.5c0 3.31 2.69 6 6 6s6-2.69 6-6V6h-2.5z"/></svg>
+            </button>
+            <span style="font-size: 0.8rem; color: #475569; margin-left: 8px;">(Attach document button missing aria-label)</span>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- Form Actions -->
+      <div class="actions">
+        <button type="submit" id="submitBtn" class="btn btn-primary">Submit Application</button>
+        <button type="button" id="saveDraftBtn" class="btn btn-secondary">Save Draft</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const toggleBtn = document.getElementById('toggleDynamicBtn');
+    const dynamicSection = document.getElementById('dynamicSection');
+    let isAdded = false;
+
+    toggleBtn.addEventListener('click', () => {
+      isAdded = !isAdded;
+      if (isAdded) {
+        dynamicSection.style.display = 'block';
+        toggleBtn.textContent = '- Remove Reference Contact';
+        toggleBtn.style.color = '#b91c1c';
+      } else {
+        dynamicSection.style.display = 'none';
+        toggleBtn.textContent = '+ Add Reference Contact (Tests MutationObserver)';
+        toggleBtn.style.color = '';
+      }
+    });
+  </script>
+</body>
+</html>

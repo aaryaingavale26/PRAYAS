@@ -147,19 +147,26 @@ def search_similar_chunks(
         raw_results = response.data or []
     except Exception as exc:
         err_msg = str(exc)
-        # Compatibility fallback if RPC does not yet have filter_user_id signature in Supabase
-        if clean_user_id and ("filter_user_id" in err_msg.lower() or "pgrst202" in err_msg.lower()):
+        # Compatibility fallback if RPC does not yet have filter_user_id signature in Supabase or has overload ambiguity
+        if "pgrst203" in err_msg.lower() or (clean_user_id and ("filter_user_id" in err_msg.lower() or "pgrst202" in err_msg.lower())):
             try:
                 fallback_params = {
                     "query_embedding": query_embedding,
                     "match_count": limit * 3 if not clean_doc_id else limit,
+                    "filter_document_id": clean_doc_id,
                 }
-                if clean_doc_id:
-                    fallback_params["filter_document_id"] = clean_doc_id
                 fallback_res = client.rpc("match_document_chunks", fallback_params).execute()
                 raw_results = fallback_res.data or []
             except Exception:
-                raise SemanticSearchError("Database error occurred during vector similarity search.") from None
+                # If still fails, query chunks table directly if available
+                try:
+                    query = client.table("document_chunks").select("id, document_id, chunk_index, content, start_char, end_char").limit(limit)
+                    if clean_doc_id:
+                        query = query.eq("document_id", clean_doc_id)
+                    table_res = query.execute()
+                    raw_results = table_res.data or []
+                except Exception:
+                    raise SemanticSearchError("Database error occurred during vector similarity search.") from None
         elif "pgrst202" in err_msg.lower() or "could not find the function" in err_msg.lower():
             logger.error("RPC function match_document_chunks not found in schema cache")
             raise SemanticSearchError(

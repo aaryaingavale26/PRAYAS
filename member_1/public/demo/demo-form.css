@@ -1,0 +1,205 @@
+/**
+ * PRAYAS 3.0 - Demo Job Application Form Styles
+ * 
+ * Includes:
+ * - Clear DEMO Banner & Watermark
+ * - Controlled form styling with deliberate accessibility barrier tags
+ * - Barrier Inspector panel for hackathon judges
+ */
+
+:root {
+  --portal-bg: #f8fafc;
+  --portal-card: #ffffff;
+  --portal-border: #e2e8f0;
+  --portal-text: #0f172a;
+  --portal-muted: #64748b;
+  --portal-primary: #1d4ed8;
+  --portal-danger: #b91c1c;
+  --portal-barrier: #f59e0b;
+}
+
+body.demo-portal {
+  background-color: var(--portal-bg);
+  color: var(--portal-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  margin: 0;
+  padding: 0 0 100px 0;
+  line-height: 1.6;
+}
+
+/* Prominent Top Demo Banner */
+.demo-top-banner {
+  background: #fef3c7;
+  border-bottom: 2px solid #f59e0b;
+  color: #92400e;
+  padding: 10px 20px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.demo-tag {
+  background: #f59e0b;
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  margin-right: 8px;
+}
+
+/* Page Container */
+.portal-container {
+  max-width: 820px;
+  margin: 30px auto;
+  padding: 0 20px;
+}
+
+.portal-header {
+  margin-bottom: 24px;
+}
+
+.portal-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.portal-company {
+  color: var(--portal-muted);
+  font-size: 1rem;
+}
+
+/* Main Form Card */
+.portal-card {
+  background: var(--portal-card);
+  border: 1px solid var(--portal-border);
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+/* Deliberate Barrier Badge */
+.barrier-callout {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  font-size: 0.76rem;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.barrier-callout.solved-by-prayas {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+/* Form Groups */
+.form-row {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 6px;
+}
+
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  box-sizing: border-box;
+  background: #fff;
+  color: #0f172a;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none;
+  border-color: var(--portal-primary);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.2);
+}
+
+/* Deliberate Inaccessible Field 1: Low-contrast placeholder without explicit label */
+.deliberate-barrier-unlabeled {
+  /* No <label for> tag in markup */
+}
+
+/* Deliberate Inaccessible Field 2: Poor contrast placeholder */
+.poor-contrast-placeholder::placeholder {
+  color: #e2e8f0; /* Low contrast 1.4:1 ratio */
+}
+
+/* Actions Footer */
+.portal-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--portal-border);
+}
+
+.btn-portal {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-portal-primary {
+  background: var(--portal-primary);
+  color: #fff;
+}
+.btn-portal-primary:hover { background: #1e40af; }
+
+.btn-portal-secondary {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+.btn-portal-secondary:hover { background: #e2e8f0; }
+
+/* Judge Inspector Panel */
+.judge-panel {
+  margin-top: 30px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  padding: 18px;
+  font-size: 0.88rem;
+}
+
+.judge-title {
+  color: #166534;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

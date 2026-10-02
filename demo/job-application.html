@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GlobalTech Careers — Job Application Portal (PRAYAS 3.0 Demo)</title>
+  <link rel="stylesheet" href="demo-form.css">
+  <link rel="stylesheet" href="../src/ui/voice-widget.css">
+</head>
+<body class="demo-portal">
+
+  <!-- Clear Demo Banner -->
+  <aside class="demo-top-banner" role="banner" aria-label="Demo notice">
+    <div>
+      <span class="demo-tag">CONTROLLED DEMO</span>
+      <span>PRAYAS 3.0 Accessible Assistant — Controlled Job Application Testbed</span>
+    </div>
+    <div>
+      <button id="btn-toggle-barriers" class="btn-portal btn-portal-secondary" style="font-size: 0.8rem; padding: 4px 10px;">
+        Hide Accessibility Barrier Callouts
+      </button>
+      <button id="btn-reset-demo" class="btn-portal btn-portal-secondary" style="font-size: 0.8rem; padding: 4px 10px; margin-left: 6px;">
+        ↺ Reset Form
+      </button>
+    </div>
+  </aside>
+
+  <div class="portal-container">
+    <header class="portal-header">
+      <h1 class="portal-title">Senior Accessibility Engineer</h1>
+      <p class="portal-company">GlobalTech Inclusive Solutions &bull; Remote &bull; Full-Time</p>
+    </header>
+
+    <main class="portal-card">
+      <form id="job-application-form" novalidate>
+        
+        <!-- Field 1: Standard Name -->
+        <div class="form-row">
+          <label for="applicant-fullname" class="form-label">
+            1. Full Legal Name <span style="color: #dc2626;">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="applicant-fullname" 
+            name="name" 
+            class="form-input" 
+            placeholder="e.g. Alex Morgan"
+            required
+          >
+        </div>
+
+        <!-- Field 2: Email -->
+        <div class="form-row">
+          <label for="applicant-email" class="form-label">
+            2. Email Address <span style="color: #dc2626;">*</span>
+          </label>
+          <input 
+            type="email" 
+            id="applicant-email" 
+            name="email" 
+            class="form-input" 
+            placeholder="e.g. alex.morgan@example.com"
+            required
+          >
+        </div>
+
+        <!-- Field 3: Deliberate Barrier 1 (Unassociated label & low-contrast placeholder) -->
+        <div class="form-row">
+          <div class="barrier-callout">
+            ⚠️ Barrier 1: Unassociated label & low-contrast placeholder (Screen readers skip label)
+          </div>
+          <div class="barrier-callout solved-by-prayas" style="margin-left: 4px;">
+            ✓ Solved by PRAYAS: Voice reads metadata aloud
+          </div>
+          <!-- Deliberately omitted 'for="applicant-phone"' -->
+          <span class="form-label">3. Mobile Phone Number <span style="color: #dc2626;">*</span></span>
+          <input 
+            type="tel" 
+            id="applicant-phone" 
+            name="phone" 
+            class="form-input poor-contrast-placeholder" 
+            placeholder="+1 (555) 000-0000"
+            aria-label="Mobile Phone Number"
+          >
+        </div>
+
+        <!-- Field 4: Deliberate Barrier 2 (Broken tab order and missing required announcement) -->
+        <div class="form-row">
+          <div class="barrier-callout">
+            ⚠️ Barrier 2: Custom tabindex traps keyboard navigation
+          </div>
+          <div class="barrier-callout solved-by-prayas" style="margin-left: 4px;">
+            ✓ Solved by PRAYAS: Direct voice routing overrides broken tab order
+          </div>
+          <label for="applicant-experience" class="form-label">
+            4. Years of Relevant Experience <span style="color: #dc2626;">*</span>
+          </label>
+          <select id="applicant-experience" name="experience" class="form-select" tabindex="5">
+            <option value="">Select experience level...</option>
+            <option value="Entry Level (0-2 years)">Entry Level (0-2 years)</option>
+            <option value="Mid-Level (3-5 years)">Mid-Level (3-5 years)</option>
+            <option value="Senior Level (5+ years)">Senior Level (5+ years)</option>
+          </select>
+        </div>
+
+        <!-- Field 5: Behavioral Question (Intimidating open-ended barrier) -->
+        <div class="form-row">
+          <div class="barrier-callout">
+            ⚠️ Barrier 3: High cognitive load behavioral question
+          </div>
+          <div class="barrier-callout solved-by-prayas" style="margin-left: 4px;">
+            ✓ Solved by PRAYAS: RAG AI drafts personalized answer from resume for candidate review
+          </div>
+          <label for="applicant-behavioral" class="form-label">
+            5. Behavioral Experience Question <span style="color: #dc2626;">*</span>
+          </label>
+          <p style="font-size: 0.85rem; color: var(--portal-muted); margin-bottom: 8px;">
+            Describe a complex technical or accessibility challenge you solved in a past project, detailing your implementation and the measurable outcome.
+          </p>
+          <textarea 
+            id="applicant-behavioral" 
+            name="behavioral_question" 
+            class="form-textarea" 
+            rows="5" 
+            placeholder="Say 'Help with this question' or press Alt+H to generate a draft from your Accessibility Passport..."
+          ></textarea>
+        </div>
+
+        <!-- Submission Safeguard Footer -->
+        <div class="portal-actions">
+          <div style="font-size: 0.85rem; color: #64748b;">
+            🔒 <strong>Candidate Control:</strong> Forms are never submitted automatically.
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button type="submit" class="btn-portal btn-portal-primary" id="btn-submit-app">
+              Submit Job Application
+            </button>
+          </div>
+        </div>
+      </form>
+    </main>
+
+    <!-- Hackathon Presentation & Judge Explainer Card -->
+    <aside class="judge-panel" aria-label="Judge notes">
+      <div class="judge-title">
+        <span>🏆 Judge Demonstration Notes</span>
+      </div>
+      <p style="color: #14532d; margin-bottom: 8px;">
+        This controlled demo demonstrates how PRAYAS 3.0 acts as an accessibility equalizer on external websites:
+      </p>
+      <ul style="margin-left: 20px; color: #166534; font-size: 0.85rem;">
+        <li><strong>Autofill Profile:</strong> Say <code>"Fill my details"</code> (or press <code>Alt+F</code>) to populate fields 1-4 with Passport data.</li>
+        <li><strong>Overcome Unlabeled / Broken Navigation:</strong> Say <code>"Next field"</code> or <code>"Read question"</code> to bypass missing labels and tab traps.</li>
+        <li><strong>AI Assistive Drafting:</strong> Focus field 5 and press <code>Alt+H</code> (or say <code>"Help with question"</code>) to run the 7-step RAG dialog.</li>
+        <li><strong>Zero Auto-Submission:</strong> The user retains total autonomy over final submission.</li>
+      </ul>
+    </aside>
+  </div>
+
+  <!-- Self-contained Standalone Bundle: Runs seamlessly on both http://localhost:3000 and file:/// desktop double-click -->
+  <script src="demo-bundle.js"></script>
+</body>
+</html>

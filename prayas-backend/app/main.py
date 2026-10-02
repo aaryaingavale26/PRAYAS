@@ -1,9 +1,18 @@
+import sys
+from pathlib import Path
+
+# Ensure backend root is in sys.path when running file directly
+_backend_root = Path(__file__).resolve().parent.parent
+if str(_backend_root) not in sys.path:
+    sys.path.insert(0, str(_backend_root))
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.router import api_router
+from app.api.integration import router as integration_router
 from app.core.config import settings
 from app.db.supabase import is_supabase_configured
 
@@ -17,12 +26,12 @@ app = FastAPI(
 )
 
 # CORS Middleware Configuration
-# Supports frontend dev servers (e.g. Next.js, Vite) and Chrome extension origins
+# Supports frontend dev servers (Next.js, Vite), local test servers, and Chrome extension origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origin_regex=r"^.*$",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -77,5 +86,16 @@ def health_check():
     }
 
 
+# Mount integration routers (/api and /api/v1) for Member 1, 3, 4 compatibility
+app.include_router(integration_router, prefix="/api")
+app.include_router(integration_router, prefix=settings.API_V1_STR)
+
 # Mount API v1 router
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+
+if __name__ == "__main__":
+    import uvicorn
+    print(f"Starting {settings.PROJECT_NAME} on http://127.0.0.1:8000 ...")
+    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
+
