@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRAYAS 3.0 — Voice Engine Test Workbench (Stage 1)</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --focus-ring: #38bdf8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      padding: 24px;
+      line-height: 1.5;
+    }
+
+    header {
+      max-width: 960px;
+      margin: 0 auto 24px auto;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge-stage {
+      background: #0284c7;
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      margin-top: 6px;
+      font-size: 0.95rem;
+    }
+
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 768px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    }
+
+    .card-full {
+      grid-column: 1 / -1;
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Status indicator */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      background: #334155;
+      color: #cbd5e1;
+      transition: all 0.2s ease;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #64748b;
+    }
+
+    .status-pill.listening {
+      background: rgba(22, 163, 74, 0.2);
+      color: #4ade80;
+      border: 1px solid #16a34a;
+    }
+    .status-pill.listening .status-dot {
+      background: #22c55e;
+      box-shadow: 0 0 10px #22c55e;
+      animation: pulse 1.2s infinite;
+    }
+
+    .status-pill.processing {
+      background: rgba(217, 119, 6, 0.2);
+      color: #fbbf24;
+      border: 1px solid #d97706;
+    }
+    .status-pill.processing .status-dot {
+      background: #f59e0b;
+    }
+
+    .status-pill.error {
+      background: rgba(220, 38, 38, 0.2);
+      color: #f87171;
+      border: 1px solid #dc2626;
+    }
+    .status-pill.error .status-dot {
+      background: #ef4444;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.7; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.9); opacity: 0.7; }
+    }
+
+    /* Buttons and controls */
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    button {
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.15s ease, transform 0.05s ease;
+    }
+
+    button:focus-visible {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 2px;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: #fff;
+    }
+    .btn-danger:hover {
+      background: #b91c1c;
+    }
+
+    .btn-secondary {
+      background: #334155;
+      color: #f1f5f9;
+    }
+    .btn-secondary:hover {
+      background: #475569;
+    }
+
+    .kbd-shortcut {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Live transcript area */
+    .transcript-box {
+      min-height: 140px;
+      background: #090d16;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 1.05rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.6;
+    }
+
+    .transcript-box .interim {
+      color: #94a3b8;
+      font-style: italic;
+    }
+
+    .transcript-box .final {
+      color: #f8fafc;
+      font-weight: 500;
+    }
+
+    .confidence-tag {
+      font-size: 0.8rem;
+      color: #38bdf8;
+      margin-left: 8px;
+      font-weight: 400;
+    }
+
+    /* Input controls */
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    input[type="text"], textarea, select {
+      width: 100%;
+      padding: 10px 12px;
+      background: #090d16;
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      color: var(--text-main);
+      font-size: 0.95rem;
+      font-family: inherit;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: 2px solid var(--focus-ring);
+      border-color: transparent;
+    }
+
+    .range-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .range-group input[type="range"] {
+      flex: 1;
+    }
+
+    /* Diagnostic log */
+    .log-container {
+      background: #090d16;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.85rem;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .log-item {
+      padding: 4px 0;
+      border-bottom: 1px solid #1e293b;
+    }
+    .log-item:last-child {
+      border-bottom: none;
+    }
+    .log-item.info { color: #38bdf8; }
+    .log-item.success { color: #4ade80; }
+    .log-item.warning { color: #fbbf24; }
+    .log-item.error { color: #f87171; }
+
+    /* Accessibility alert banner */
+    .alert-banner {
+      background: #172554;
+      border: 1px solid #1e40af;
+      padding: 14px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .alert-banner.visible {
+      display: block;
+    }
+    .alert-banner h3 {
+      color: #93c5fd;
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+    .alert-banner p {
+      color: #bfdbfe;
+      font-size: 0.9rem;
+    }
+
+    /* Help docs panel */
+    .help-panel {
+      font-size: 0.9rem;
+      color: #cbd5e1;
+    }
+    .help-panel ul {
+      margin-left: 20px;
+      margin-top: 8px;
+    }
+    .help-panel li {
+      margin-bottom: 6px;
+    }
+    .help-panel code {
+      background: #090d16;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #38bdf8;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>
+      <span>🎙️ PRAYAS 3.0 Voice Engine</span>
+      <span class="badge-stage">Stage 1 Prototype</span>
+    </h1>
+    <p class="subtitle">
+      Accessible Speech Recognition (STT) and Text-To-Speech (TTS) engine verification workbench.
+    </p>
+  </header>
+
+  <main>
+    <!-- Left Column: Speech Recognition (Microphone) -->
+    <section class="card" aria-labelledby="stt-heading">
+      <div class="card-title">
+        <h2 id="stt-heading">Speech Recognition (Microphone)</h2>
+        <div id="stt-status-badge" class="status-pill" role="status" aria-live="polite">
+          <span class="status-dot"></span>
+          <span id="stt-status-text">IDLE</span>
+        </div>
+      </div>
+
+      <div id="stt-alert" class="alert-banner" role="alert">
+        <h3 id="stt-alert-title">Microphone Notice</h3>
+        <p id="stt-alert-msg"></p>
+      </div>
+
+      <div class="btn-group">
+        <button id="btn-start-mic" class="btn-primary" aria-label="Start listening to microphone (Shortcut: Alt+M)">
+          🎤 Start Listening <span class="kbd-shortcut">Alt+M</span>
+        </button>
+        <button id="btn-stop-mic" class="btn-secondary" aria-label="Stop listening (Shortcut: Alt+S)">
+          ⏹ Stop <span class="kbd-shortcut">Alt+S</span>
+        </button>
+        <button id="btn-abort-mic" class="btn-danger" aria-label="Abort speech recognition (Shortcut: Esc)">
+          ✕ Cancel <span class="kbd-shortcut">Esc</span>
+        </button>
+      </div>
+
+      <div class="form-group">
+        <label for="transcript-display">Live Recognized Transcript:</label>
+        <div id="transcript-display" class="transcript-box" tabindex="0" role="region" aria-live="polite" aria-label="Live speech transcript">
+          <span class="interim">Click "Start Listening" or press Alt+M and speak into your microphone...</span>
+        </div>
+      </div>
+
+      <div class="btn-group" style="margin-top: 10px;">
+        <button id="btn-clear-transcript" class="btn-secondary" style="font-size: 0.85rem; padding: 6px 12px;">
+          Clear Transcript
+        </button>
+      </div>
+    </section>
+
+    <!-- Right Column: Speech Synthesis (TTS) -->
+    <section class="card" aria-labelledby="tts-heading">
+      <div class="card-title">
+        <h2 id="tts-heading">Text-To-Speech (TTS)</h2>
+        <div id="tts-status-badge" class="status-pill" role="status" aria-live="polite">
+          <span class="status-dot"></span>
+          <span id="tts-status-text">READY</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="tts-input">Spoken Text Prompt:</label>
+        <textarea id="tts-input" rows="3" aria-label="Text to speak aloud">Welcome to PRAYAS 3.0. Voice navigation and accessibility features are active and ready.</textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="voice-select">Voice Model:</label>
+        <select id="voice-select" aria-label="Select synthesizer voice">
+          <option value="">Loading system voices...</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="rate-slider">Speech Rate: <span id="rate-value">1.0x</span></label>
+        <div class="range-group">
+          <input type="range" id="rate-slider" min="0.6" max="1.8" step="0.1" value="1.0" aria-label="Speech speed rate">
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button id="btn-speak-tts" class="btn-primary" aria-label="Speak text aloud (Shortcut: Alt+P)">
+          🔊 Speak Text <span class="kbd-shortcut">Alt+P</span>
+        </button>
+        <button id="btn-stop-tts" class="btn-danger" aria-label="Stop speech (Shortcut: Alt+K)">
+          ⏹ Stop Speech <span class="kbd-shortcut">Alt+K</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Full Width: Diagnostic Event Log -->
+    <section class="card card-full" aria-labelledby="diag-heading">
+      <div class="card-title">
+        <h2 id="diag-heading">Diagnostics & Event Log</h2>
+        <button id="btn-clear-log" class="btn-secondary" style="font-size: 0.85rem; padding: 4px 10px;">
+          Clear Log
+        </button>
+      </div>
+
+      <div id="event-log" class="log-container" role="log" aria-live="polite">
+        <div class="log-item info">[System] PRAYAS 3.0 Voice Test Suite initialized. Ready for user interaction.</div>
+      </div>
+    </section>
+
+    <!-- Full Width: Browser Limitations & Permissions Guide -->
+    <section class="card card-full" aria-labelledby="guide-heading">
+      <h2 id="guide-heading" style="font-size: 1.15rem; margin-bottom: 12px; color: #38bdf8;">
+        📘 Browser Permissions & Technical Requirements
+      </h2>
+      <div class="help-panel">
+        <p>For the 36-hour hackathon, please keep the following browser requirements in mind:</p>
+        <ul>
+          <li><strong>Supported Browsers:</strong> Speech recognition relies on the Web Speech API (`SpeechRecognition` or `webkitSpeechRecognition`). Google Chrome, Chromium, and Microsoft Edge provide full out-of-the-box support. Firefox requires custom flag configuration.</li>
+          <li><strong>Microphone Permissions:</strong> The browser will prompt for microphone permission on the first activation. If denied, Chrome marks it as <code>not-allowed</code>. Reset permissions by clicking the padlock or tune icon in the Chrome URL bar.</li>
+          <li><strong>Secure Context Requirement:</strong> Web Speech API strictly requires a secure context (either <code>https://</code> or <code>http://localhost / http://127.0.0.1</code>). It will fail with permission errors on raw <code>file://</code> URLs in some Chromium versions.</li>
+          <li><strong>Speech Recognition Network Dependency:</strong> Chromium's Web Speech API implementation streams audio to Google's cloud speech recognizer. An active internet connection is required for transcription.</li>
+          <li><strong>No Auto-Continuous Listening:</strong> To comply with WCAG 2.1 AA and privacy best practices, listening must be explicitly triggered by the user (via button click or keyboard shortcut) rather than listening endlessly.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <!-- ES Module Script linking our production-grade modules -->
+  <script type="module">
+    import { SpeechRecognizer, RecognitionState } from '../src/voice/speech-recognizer.js';
+    import { SpeechSynthesizer } from '../src/voice/speech-synthesizer.js';
+
+    // DOM Elements
+    const sttBadge = document.getElementById('stt-status-badge');
+    const sttStatusText = document.getElementById('stt-status-text');
+    const sttAlert = document.getElementById('stt-alert');
+    const sttAlertTitle = document.getElementById('stt-alert-title');
+    const sttAlertMsg = document.getElementById('stt-alert-msg');
+    const transcriptDisplay = document.getElementById('transcript-display');
+
+    const btnStartMic = document.getElementById('btn-start-mic');
+    const btnStopMic = document.getElementById('btn-stop-mic');
+    const btnAbortMic = document.getElementById('btn-abort-mic');
+    const btnClearTranscript = document.getElementById('btn-clear-transcript');
+
+    const ttsBadge = document.getElementById('tts-status-badge');
+    const ttsStatusText = document.getElementById('tts-status-text');
+    const ttsInput = document.getElementById('tts-input');
+    const voiceSelect = document.getElementById('voice-select');
+    const rateSlider = document.getElementById('rate-slider');
+    const rateValue = document.getElementById('rate-value');
+    const btnSpeakTTS = document.getElementById('btn-speak-tts');
+    const btnStopTTS = document.getElementById('btn-stop-tts');
+
+    const eventLog = document.getElementById('event-log');
+    const btnClearLog = document.getElementById('btn-clear-log');
+
+    // Logging Utility
+    function log(message, type = 'info') {
+      const time = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = `log-item ${type}`;
+      div.textContent = `[${time}] ${message}`;
+      eventLog.prepend(div);
+    }
+
+    btnClearLog.addEventListener('click', () => {
+      eventLog.innerHTML = '';
+      log('Log cleared', 'info');
+    });
+
+    // Initialize Recognizer
+    const recognizer = new SpeechRecognizer({
+      lang: 'en-US',
+      continuous: false,
+      interimResults: true
+    });
+
+    // Initialize Synthesizer
+    const synthesizer = new SpeechSynthesizer({
+      rate: 1.0,
+      pitch: 1.0
+    });
+
+    // Recognizer State Updates
+    recognizer.onStateChange = (state) => {
+      sttStatusText.textContent = state;
+      sttBadge.className = 'status-pill';
+
+      if (state === RecognitionState.LISTENING) {
+        sttBadge.classList.add('listening');
+      } else if (state === RecognitionState.PROCESSING) {
+        sttBadge.classList.add('processing');
+      } else if (state === RecognitionState.ERROR) {
+        sttBadge.classList.add('error');
+      }
+
+      log(`STT State changed: ${state}`, 'info');
+    };
+
+    recognizer.onStart = () => {
+      sttAlert.classList.remove('visible');
+      log('Microphone listening active. Speak clearly.', 'success');
+    };
+
+    recognizer.onTranscript = ({ transcript, isFinal, confidence }) => {
+      if (isFinal) {
+        transcriptDisplay.innerHTML = `<span class="final">${transcript}</span> <span class="confidence-tag">(${Math.round(confidence * 100)}% match)</span>`;
+        log(`Final Transcript: "${transcript}" (confidence: ${confidence})`, 'success');
+      } else {
+        transcriptDisplay.innerHTML = `<span class="interim">${transcript}...</span>`;
+      }
+    };
+
+    recognizer.onError = (errorDetail) => {
+      sttAlertTitle.textContent = `Error: ${errorDetail.code}`;
+      sttAlertMsg.textContent = `${errorDetail.message} ${errorDetail.resolution}`;
+      sttAlert.classList.add('visible');
+      log(`STT Error (${errorDetail.code}): ${errorDetail.message}`, 'error');
+    };
+
+    recognizer.onEnd = () => {
+      log('Microphone stopped listening.', 'info');
+    };
+
+    // STT Buttons
+    btnStartMic.addEventListener('click', () => {
+      try {
+        recognizer.start();
+      } catch (err) {
+        log(`Failed to start recognition: ${err.message}`, 'error');
+      }
+    });
+
+    btnStopMic.addEventListener('click', () => {
+      recognizer.stop();
+      log('Requested stop listening.', 'info');
+    });
+
+    btnAbortMic.addEventListener('click', () => {
+      recognizer.abort();
+      transcriptDisplay.innerHTML = '<span class="interim">Recognition cancelled by user.</span>';
+      log('Aborted speech recognition.', 'warning');
+    });
+
+    btnClearTranscript.addEventListener('click', () => {
+      transcriptDisplay.innerHTML = '<span class="interim">Transcript cleared. Ready to listen.</span>';
+    });
+
+    // Populate Voices
+    function populateVoices() {
+      const voices = synthesizer.getVoices();
+      if (!voices || voices.length === 0) return;
+
+      voiceSelect.innerHTML = '';
+      voices.forEach(voice => {
+        const option = document.createElement('option');
+        option.value = voice.name;
+        option.textContent = `${voice.name} (${voice.lang})${voice.default ? ' [Default]' : ''}`;
+        if (synthesizer.selectedVoice && synthesizer.selectedVoice.name === voice.name) {
+          option.selected = true;
+        }
+        voiceSelect.appendChild(option);
+      });
+      log(`Loaded ${voices.length} synthesized voices.`, 'info');
+    }
+
+    synthesizer.onVoicesLoaded = populateVoices;
+    populateVoices();
+
+    voiceSelect.addEventListener('change', () => {
+      synthesizer.setVoiceByName(voiceSelect.value);
+      log(`Active voice set to: ${voiceSelect.value}`, 'info');
+    });
+
+    rateSlider.addEventListener('input', () => {
+      const rate = parseFloat(rateSlider.value);
+      rateValue.textContent = `${rate.toFixed(1)}x`;
+      synthesizer.rate = rate;
+    });
+
+    // Synthesizer Events
+    synthesizer.onStart = (text) => {
+      ttsStatusText.textContent = 'SPEAKING';
+      ttsBadge.className = 'status-pill processing';
+      log(`TTS speaking: "${text.substring(0, 45)}${text.length > 45 ? '...' : ''}"`, 'info');
+    };
+
+    synthesizer.onEnd = () => {
+      ttsStatusText.textContent = 'READY';
+      ttsBadge.className = 'status-pill';
+      log('TTS speech completed.', 'info');
+    };
+
+    synthesizer.onError = (err) => {
+      ttsStatusText.textContent = 'ERROR';
+      ttsBadge.className = 'status-pill error';
+      log(`TTS Error: ${err.error || err.message}`, 'error');
+    };
+
+    // TTS Buttons
+    btnSpeakTTS.addEventListener('click', async () => {
+      const text = ttsInput.value.trim();
+      if (!text) return;
+      try {
+        await synthesizer.speak(text);
+      } catch (err) {
+        log(`TTS speak failed: ${err.message || err.error}`, 'error');
+      }
+    });
+
+    btnStopTTS.addEventListener('click', () => {
+      synthesizer.stop();
+      log('Speech synthesis halted by user.', 'warning');
+    });
+
+    // Keyboard Shortcuts (WCAG 2.1 Alternative Access)
+    window.addEventListener('keydown', (e) => {
+      if (e.altKey && (e.key === 'm' || e.key === 'M')) {
+        e.preventDefault();
+        btnStartMic.click();
+      } else if (e.altKey && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        btnStopMic.click();
+      } else if (e.key === 'Escape') {
+        btnAbortMic.click();
+      } else if (e.altKey && (e.key === 'p' || e.key === 'P')) {
+        e.preventDefault();
+        btnSpeakTTS.click();
+      } else if (e.altKey && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        btnStopTTS.click();
+      }
+    });
+  </script>
+</body>
+</html>
