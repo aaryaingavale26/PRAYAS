@@ -5,6 +5,7 @@
  */
 
 const STORAGE_KEY = "prayas_scorecard_reports";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 export const SAMPLE_SCORECARD_REPORTS = [
   {
@@ -93,20 +94,59 @@ export const SAMPLE_SCORECARD_REPORTS = [
  * Fetch all audit reports
  */
 export async function getScorecardReports() {
-  if (typeof window === "undefined") return SAMPLE_SCORECARD_REPORTS;
-
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
+  let backendReports = [];
+  if (typeof window !== "undefined") {
     try {
-      return JSON.parse(stored);
+      const res = await fetch(`${API_BASE_URL}/api/audit-report`, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(1500),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.reports)) {
+          backendReports = data.reports.map((r) => ({
+            id: r.reportId || `rep-${Math.random().toString(36).substr(2, 5)}`,
+            portalName: r.pageTitle || "Live Job Portal",
+            url: r.url || "http://localhost:3000/demo/job-application.html",
+            auditDate: r.timestamp || new Date().toISOString(),
+            overallScore: r.overallScore || Math.max(70, 100 - (r.unresolvedIssuesCount || 1) * 10),
+            wcagLevel: r.unresolvedIssuesCount > 0 ? "WCAG 2.2 AA Partially Compliant" : "WCAG 2.2 AA Compliant",
+            detectedIssuesCount: r.detectedIssuesCount || (r.issues ? r.issues.length : 0),
+            verifiedImprovementsCount: r.verifiedImprovementsCount || 0,
+            unresolvedIssuesCount: r.unresolvedIssuesCount || 0,
+            issues: r.issues || [],
+            source: "Chrome Extension (Live API)",
+          }));
+        }
+      }
     } catch (e) {
-      console.error("Failed to parse stored scorecard reports", e);
+      // Backend offline or timeout; proceed with local storage
     }
   }
 
-  // Set default samples
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(SAMPLE_SCORECARD_REPORTS));
-  return SAMPLE_SCORECARD_REPORTS;
+  // Local storage
+  let localReports = [];
+  if (typeof window !== "undefined") {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        localReports = JSON.parse(stored);
+      } catch (e) {}
+    }
+  }
+
+  // Combine unique reports (backend reports prioritized)
+  const combinedMap = new Map();
+  backendReports.forEach((r) => combinedMap.set(r.id, r));
+  localReports.forEach((r) => {
+    if (!combinedMap.has(r.id)) combinedMap.set(r.id, r);
+  });
+  SAMPLE_SCORECARD_REPORTS.forEach((r) => {
+    if (!combinedMap.has(r.id)) combinedMap.set(r.id, r);
+  });
+
+  return Array.from(combinedMap.values());
 }
 
 /**

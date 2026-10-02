@@ -29,6 +29,7 @@ export function Navbar() {
     { name: "Document Hub", href: "/documents" },
     { name: "AI Assistant", href: "/assistant" },
     { name: "Scorecard", href: "/scorecard" },
+    { name: "Demo Portal", href: "/demo" },
     ...(user ? [{ name: "Dashboard", href: "/dashboard" }] : []),
   ];
 

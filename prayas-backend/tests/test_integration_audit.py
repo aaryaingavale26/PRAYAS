@@ -58,6 +58,7 @@ class TestBackendIntegrationAudit(unittest.TestCase):
     @patch("app.services.semantic_search.get_user_document_metadata")
     @patch("app.api.documents.upload_document")
     @patch("app.api.documents.save_document_metadata")
+    @patch("app.services.document_indexer.delete_document_chunks")
     @patch("app.services.document_indexer.embed_text_chunks")
     @patch("app.services.document_indexer.save_document_chunks")
     @patch("app.api.documents.download_document")
@@ -65,6 +66,8 @@ class TestBackendIntegrationAudit(unittest.TestCase):
     @patch("app.api.documents.extract_text_from_pdf")
     @patch("app.services.semantic_search.generate_embedding")
     @patch("app.services.semantic_search.is_gemini_configured", return_value=True)
+    @patch("app.services.rag_service.is_gemini_configured", return_value=True)
+    @patch("app.services.text_simplifier.is_gemini_configured", return_value=True)
     @patch("app.services.semantic_search.is_supabase_configured", return_value=True)
     @patch("app.services.semantic_search.get_supabase_client")
     @patch("app.services.rag_service.generate_text")
@@ -75,6 +78,8 @@ class TestBackendIntegrationAudit(unittest.TestCase):
         mock_rag_gen_text,
         mock_supa_client,
         mock_supa_conf,
+        mock_simp_cfg,
+        mock_rag_cfg,
         mock_gemini_conf,
         mock_search_gen_emb,
         mock_pdf_extract,
@@ -82,6 +87,7 @@ class TestBackendIntegrationAudit(unittest.TestCase):
         mock_download,
         mock_save_chunks,
         mock_embed_chunks,
+        mock_del_chunks,
         mock_save_metadata,
         mock_upload,
         mock_get_user_doc_meta,

@@ -1,6 +1,10 @@
 const fs = require('fs');
+const path = require('path');
 
-const html = fs.readFileSync('demo/job-application-demo.html', 'utf8');
+const demoPath = fs.existsSync('demo/job-application-demo.html')
+  ? 'demo/job-application-demo.html'
+  : path.resolve(__dirname, '../demo/job-application-demo.html');
+const html = fs.readFileSync(demoPath, 'utf8');
 
 console.log('=== RUNNING STATIC AUDIT VERIFICATION ===');
 

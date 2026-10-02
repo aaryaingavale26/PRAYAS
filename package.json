@@ -1,0 +1,33 @@
+{
+  "name": "prayas-3.0-monorepo",
+  "version": "3.0.0",
+  "description": "PRAYAS 3.0: Accessible Job Application Assistant — Team ByteShastra (PS003)",
+  "private": true,
+  "scripts": {
+    "start": "node scripts/start-all.js",
+    "dev": "node scripts/start-all.js",
+    "build": "npm --prefix member_1 run build",
+    "dev:frontend": "npm --prefix member_1 run dev",
+    "dev:backend": "prayas-backend\\.venv\\Scripts\\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --app-dir prayas-backend",
+    "build:frontend": "npm --prefix member_1 run build",
+    "test": "node scripts/test-all.js",
+    "test:frontend": "npm --prefix member_1 run build",
+    "test:backend": "prayas-backend\\.venv\\Scripts\\python.exe -m unittest discover -s prayas-backend/tests -p \"test_*.py\"",
+    "test:extension": "node member-3-prayas-extension/tests/run-all-tests.js",
+    "test:voice": "node member-4-voice-input-and-testing/tests/run-e2e-tests.js"
+  },
+  "keywords": [
+    "accessibility",
+    "a11y",
+    "wcag",
+    "screen-reader",
+    "voice-navigation",
+    "chrome-extension",
+    "rag",
+    "fastapi",
+    "nextjs",
+    "gemini"
+  ],
+  "author": "Team ByteShastra",
+  "license": "MIT"
+}

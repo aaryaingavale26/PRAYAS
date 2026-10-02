@@ -1,5 +1,19 @@
+# Dependencies & virtual environments
+node_modules/
+.next/
 .venv/
 venv/
 __pycache__/
 *.pyc
+
+# Local environment & secrets
 .env
+.env.local
+.env.*.local
+*.env
+
+# Local directory junctions & temporary copies
+/backend
+/extension
+/frontend
+/prayas-backend1

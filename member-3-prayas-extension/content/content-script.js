@@ -1072,10 +1072,130 @@
   }
 
   // Runtime messaging
+  function prayasRuntimeMessageDispatcher(message, sender, sendResponse) {
+    if (message.type === 'PRAYAS_PING' || message.type === 'PING') {
+      sendResponse({ success: true, status: 'PRAYAS_ACTIVE', version: '3.0.0' });
+      return true;
+    }
 
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === 'PRAYAS_PING') {
-      sendResponse({ status: 'PRAYAS_ACTIVE', version: '1.0.0' });
+    if (message.type === 'NAVIGATE_NEXT') {
+      const res = navigateField(1);
+      sendResponse({
+        success: res.success,
+        action: 'NAVIGATE_NEXT',
+        field: {
+          id: res.fieldId || 'active_field',
+          label: res.fieldLabel,
+          type: res.fieldType,
+          required: true
+        }
+      });
+      return true;
+    }
+
+    if (message.type === 'NAVIGATE_PREVIOUS') {
+      const res = navigateField(-1);
+      sendResponse({
+        success: res.success,
+        action: 'NAVIGATE_PREVIOUS',
+        field: {
+          id: res.fieldId || 'active_field',
+          label: res.fieldLabel,
+          type: res.fieldType,
+          required: true
+        }
+      });
+      return true;
+    }
+
+    if (message.type === 'READ_PAGE') {
+      const scanResult = runFullScanAndAudit();
+      sendResponse({
+        success: true,
+        summary: {
+          pageTitle: document.title || 'Job Application Portal',
+          totalFields: scanResult.fieldsCount,
+          currentFieldIndex: currentNavIndex + 1
+        }
+      });
+      return true;
+    }
+
+    if (message.type === 'READ_CURRENT_FIELD') {
+      const res = readCurrentField();
+      sendResponse({
+        success: res.success,
+        field: {
+          label: res.fieldLabel,
+          type: res.fieldType,
+          required: true,
+          currentValue: document.activeElement ? document.activeElement.value : ''
+        }
+      });
+      return true;
+    }
+
+    if (message.type === 'FILL_PROFILE_DETAILS') {
+      chrome.storage.local.get(['passportProfile'], (data) => {
+        const passport = data.passportProfile || null;
+        if (!passport) {
+          sendResponse({ success: false, error: 'No passport profile available' });
+          return;
+        }
+        const matched = previewAutofillMatches(passport);
+        const fieldsToFill = matched.map((m) => ({ prayasId: m.prayasId, valueToFill: m.valueToFill }));
+        const res = executeConfirmedAutofill(fieldsToFill);
+        renderInPageFloatingDock();
+        sendResponse({
+          success: true,
+          fieldsUpdated: fieldsToFill.map(f => f.prayasId),
+          filledCount: res.filledCount,
+          message: 'Profile details populated from Accessibility Passport.'
+        });
+      });
+      return true;
+    }
+
+    if (message.type === 'GET_ACTIVE_QUESTION') {
+      let targetEl = document.activeElement;
+      if (!targetEl || targetEl.tagName === 'BODY') {
+        const elements = getNavigableElements();
+        targetEl = elements.find(el => el.tagName.toLowerCase() === 'textarea') || elements[0];
+      }
+      let question = '';
+      if (targetEl) {
+        const prayasId = targetEl.getAttribute('data-prayas-id');
+        const meta = fieldRegistry.get(prayasId) || {};
+        question = meta.label || targetEl.getAttribute('aria-label') || targetEl.placeholder || 'Job application question';
+      } else {
+        question = 'Describe your relevant technical background and accessibility experience.';
+      }
+      sendResponse({
+        success: true,
+        question: question,
+        fieldId: targetEl ? (targetEl.id || targetEl.name || 'question_field') : 'question_field'
+      });
+      return true;
+    }
+
+    if (message.type === 'INSERT_DRAFT_ANSWER') {
+      const textToInsert = message.payload?.text || message.text || '';
+      let targetEl = document.activeElement;
+      if (!targetEl || targetEl.tagName === 'BODY' || (targetEl.tagName !== 'TEXTAREA' && targetEl.tagName !== 'INPUT')) {
+        const elements = getNavigableElements();
+        targetEl = elements.find(el => el.tagName.toLowerCase() === 'textarea') || elements[elements.length - 1];
+      }
+      if (targetEl && (targetEl.tagName === 'TEXTAREA' || targetEl.tagName === 'INPUT')) {
+        targetEl.focus();
+        targetEl.value = textToInsert;
+        targetEl.dispatchEvent(new Event('input', { bubbles: true }));
+        targetEl.dispatchEvent(new Event('change', { bubbles: true }));
+        highlightElement(targetEl);
+        speakAnnouncement('Draft answer inserted into field.');
+        sendResponse({ success: true, inserted: true, length: textToInsert.length });
+      } else {
+        sendResponse({ success: false, error: 'No editable field found to insert draft answer' });
+      }
       return true;
     }
 
@@ -1176,5 +1296,35 @@
 
     sendResponse({ success: false, error: 'Unknown message type' });
     return true;
-  });
+  }
+
+  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+    chrome.runtime.onMessage.addListener(prayasRuntimeMessageDispatcher);
+  }
+
+  // Expose PRAYAS Core Engine to window for voice agent and in-page automation
+  window.__PRAYAS_CORE__ = {
+    fieldRegistry,
+    auditIssues,
+    runFullScanAndAudit,
+    applySafeImprovements,
+    undoAccessibilityImprovements,
+    navigateField,
+    readCurrentField,
+    previewAutofillMatches,
+    executeConfirmedAutofill,
+    generateAccessibilityScorecard,
+    speakAnnouncement,
+    handleVoiceCommand,
+    dispatchMessage: (message) => {
+      return new Promise((resolve) => {
+        try {
+          const handled = prayasRuntimeMessageDispatcher(message, {}, (res) => resolve(res));
+          if (!handled) resolve({ success: false, error: 'Unhandled message' });
+        } catch (err) {
+          resolve({ success: false, error: err.message });
+        }
+      });
+    }
+  };
 })();
