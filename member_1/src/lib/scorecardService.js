@@ -5,7 +5,10 @@
  */
 
 const STORAGE_KEY = "prayas_scorecard_reports";
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:8000";
 
 export const SAMPLE_SCORECARD_REPORTS = [
   {

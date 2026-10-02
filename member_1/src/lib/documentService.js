@@ -5,7 +5,10 @@
  */
 
 const STORAGE_KEY = "prayas_uploaded_documents";
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:8000";
 
 // Standard allowed file extensions and maximum size (10MB)
 export const ALLOWED_EXTENSIONS = [".pdf", ".docx", ".doc", ".txt"];

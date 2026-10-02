@@ -3,7 +3,10 @@
  * Centralized interface for connecting to Member 2's FastAPI and RAG backend
  */
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:8000";
 
 /**
  * Health Check for FastAPI backend
