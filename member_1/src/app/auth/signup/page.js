@@ -53,10 +53,10 @@ export default function SignupPage() {
     try {
       setLoading(true);
       await signUp(email, password, fullName);
-      setSuccessMessage("Account created successfully! Taking you to your Accessibility Passport...");
+      setSuccessMessage("Account created successfully! Taking you to upload your resume/CV...");
       setTimeout(() => {
-        router.push("/passport");
-      }, 700);
+        router.push("/onboarding");
+      }, 600);
     } catch (err) {
       setError(err.message || "Failed to create account. Please try again.");
     } finally {

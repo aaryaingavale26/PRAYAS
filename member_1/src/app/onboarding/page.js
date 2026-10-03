@@ -33,10 +33,6 @@ export default function OnboardingPage() {
   }, [authLoading, user, router]);
 
   useEffect(() => {
-    if (status?.has_cv && stage === "upload") router.replace("/dashboard");
-  }, [status, stage, router]);
-
-  useEffect(() => {
     headingRef.current?.focus();
   }, [stage]);
 
