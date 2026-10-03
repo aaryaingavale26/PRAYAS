@@ -129,6 +129,29 @@ async def onboarding_upload_cv(
         }
 
     proposed = to_passport_fields(profile)
+
+    # Auto-fill the passport directly from CV
+    autofilled_passport = {**current}
+    field_sources = dict(record.get("field_sources") or {})
+    for k, v in proposed.items():
+        if v:
+            autofilled_passport[k] = v
+            field_sources[k] = "cv"
+
+    try:
+        save_passport_record(
+            user_id=current_user.user_id,
+            passport_data=autofilled_passport,
+            extracted_profile=profile,
+            field_sources=field_sources,
+        )
+        try:
+            reindex_profile(current_user.user_id, autofilled_passport)
+        except Exception:
+            pass
+    except Exception as exc:
+        logger.warning("Could not auto-fill passport immediately: %s", str(exc))
+
     fields = []
     for key in REVIEW_FIELDS:
         conf_key = PASSPORT_FIELD_TO_CONFIDENCE_KEY.get(key)
@@ -137,17 +160,19 @@ async def onboarding_upload_cv(
         fields.append({
             "key": key,
             "proposed": proposed.get(key, ""),
-            "current": current.get(key, "") if has_current else "",
+            "current": autofilled_passport.get(key, ""),
             "confidence": confidence.get(conf_key, "missing") if has_proposed else "missing",
-            "auto_filled": has_proposed and not has_current,
+            "auto_filled": has_proposed,
             "missing": not has_proposed and not has_current,
-            "conflict": has_proposed and has_current and str(current.get(key)).strip() != proposed[key].strip(),
+            "conflict": False,
         })
 
     return {
         **base,
+        "extracted_text": text,
         "extraction_failed": False,
         "proposed": proposed,
+        "passport": autofilled_passport,
         "confidence": confidence,
         "fields": fields,
         "diff": build_diff(current, proposed),

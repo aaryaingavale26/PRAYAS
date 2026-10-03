@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Sparkles, FileText, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 export const FIELD_LABELS = {
@@ -38,12 +38,13 @@ const LONG_FIELDS = new Set([
 export function CvReviewPanel({ result, mode = "review", saving = false, onConfirm, onCancel }) {
   const fields = result.fields || [];
   const current = result.current_passport || {};
+  const [showRawText, setShowRawText] = useState(false);
 
-  // ---- review mode state: editable values (existing value wins; otherwise CV value)
+  // ---- review mode state: editable values (prioritizing values read from CV!)
   const [values, setValues] = useState(() => {
     const v = {};
     fields.forEach((f) => {
-      v[f.key] = f.current ? f.current : f.proposed || "";
+      v[f.key] = f.proposed ? f.proposed : f.current || "";
     });
     return v;
   });
@@ -63,7 +64,7 @@ export function CvReviewPanel({ result, mode = "review", saving = false, onConfi
     [fields, values]
   );
 
-  const submitReview = () => {
+  const submitReview = (destination = "dashboard") => {
     const out = {};
     const overwrite = [];
     fields.forEach((f) => {
@@ -73,7 +74,7 @@ export function CvReviewPanel({ result, mode = "review", saving = false, onConfi
       // The user explicitly edited an already-saved value in this screen
       if (f.current && val !== String(f.current).trim()) overwrite.push(f.key);
     });
-    onConfirm({ fields: out, overwriteFields: overwrite });
+    onConfirm({ fields: out, overwriteFields: overwrite, destination });
   };
 
   const submitUpdate = () => {
@@ -146,20 +147,66 @@ export function CvReviewPanel({ result, mode = "review", saving = false, onConfi
     );
   }
 
+  const sortedFields = useMemo(() => {
+    return [...fields].sort((a, b) => {
+      const aHas = Boolean((values[a.key] || "").trim());
+      const bHas = Boolean((values[b.key] || "").trim());
+      if (aHas && !bHas) return -1;
+      if (!aHas && bHas) return 1;
+      return 0;
+    });
+  }, [fields, values]);
+
   return (
     <div className="space-y-5">
+      {/* Autofill Status Banner */}
+      <div className="p-4 rounded-2xl bg-[#ECFDF5] border-2 border-[#A7F3D0] text-[#065F46] flex items-start gap-3">
+        <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5 text-[#059669]" aria-hidden="true" />
+        <div className="flex-1">
+          <p className="font-extrabold text-sm sm:text-base">
+            CV successfully read! Details have been auto-filled into your Accessibility Passport.
+          </p>
+          <p className="text-xs text-[#047857] mt-0.5">
+            {result.file_name ? `From: ${result.file_name}` : "Document processed"} · All extracted information is shown below.
+          </p>
+        </div>
+      </div>
+
+      {/* Raw Extracted Text Viewer */}
+      {result.extracted_text && (
+        <div className="rounded-2xl border-2 border-[#E2E2D4] bg-white p-4">
+          <div className="flex items-center justify-between">
+            <span className="font-display font-extrabold text-sm text-[#18191D] flex items-center gap-2">
+              <FileText className="h-4 w-4 text-[#1F5FBF]" />
+              Full Document Text Read from CV
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowRawText((prev) => !prev)}
+              className="text-xs font-bold text-[#1F5FBF] hover:underline cursor-pointer"
+            >
+              {showRawText ? "Hide full text" : "Show all read text"}
+            </button>
+          </div>
+          {showRawText && (
+            <div className="mt-3 p-3 bg-[#FBFBEF] rounded-xl border border-[#E2E2D4] max-h-60 overflow-y-auto text-xs text-[#18191D] whitespace-pre-wrap font-mono">
+              {result.extracted_text}
+            </div>
+          )}
+        </div>
+      )}
+
       <p className="text-sm text-[#4B4D56]" id="review-help">
-        We filled in what we found in your CV. Anything we couldn&apos;t find is left blank (we never guess).
-        Fix anything that&apos;s wrong, then confirm. Nothing is saved until you do.
+        We filled in what we found in your CV. You can edit any field before confirming, or view your full passport.
       </p>
       {missingCount > 0 && (
         <p className="text-xs font-bold text-[#92400E] flex items-center gap-1.5" role="status">
           <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-          {missingCount} field{missingCount === 1 ? "" : "s"} not found in your CV. You can add them now or later.
+          {missingCount} field{missingCount === 1 ? "" : "s"} not detected in your CV. You can add them now or later.
         </p>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {fields.map((f) => {
+        {sortedFields.map((f) => {
           const val = values[f.key] || "";
           const empty = !val.trim();
           const lowConf = f.auto_filled && f.confidence === "low" && !empty;
@@ -179,7 +226,7 @@ export function CvReviewPanel({ result, mode = "review", saving = false, onConfi
                 <label htmlFor={id} className="text-sm font-bold text-[#18191D]">
                   {FIELD_LABELS[f.key] || f.key}
                 </label>
-                {f.auto_filled && !empty && (
+                {!empty && (
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#D4F1FE] text-[#1F5FBF]">
                     <Sparkles className="h-3 w-3" aria-hidden="true" /> Auto-filled from CV
                   </span>
@@ -191,17 +238,24 @@ export function CvReviewPanel({ result, mode = "review", saving = false, onConfi
                   ? "Not found in your CV. Add it if you like."
                   : lowConf
                   ? "Low confidence. Please double-check this."
-                  : f.current && !f.auto_filled
-                  ? "Already saved in your passport (kept)."
-                  : "Looks right? Edit if needed."}
+                  : "Auto-filled from CV. Edit if needed."}
               </p>
             </div>
           );
         })}
       </div>
       <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
-        {onCancel && <Button variant="outline" onClick={onCancel}>Back</Button>}
-        <Button variant="primary" size="lg" onClick={submitReview} isLoading={saving} leftIcon={<CheckCircle2 className="h-5 w-5" />}>
+        {onCancel && <Button variant="outline" onClick={onCancel}>Upload Different CV</Button>}
+        <Button
+          variant="outline"
+          size="lg"
+          onClick={() => submitReview("passport")}
+          isLoading={saving}
+          leftIcon={<Sparkles className="h-5 w-5 text-[#1F5FBF]" />}
+        >
+          View in Passport
+        </Button>
+        <Button variant="primary" size="lg" onClick={() => submitReview("dashboard")} isLoading={saving} leftIcon={<CheckCircle2 className="h-5 w-5" />}>
           Looks good, save
         </Button>
       </div>

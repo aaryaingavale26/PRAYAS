@@ -67,12 +67,16 @@ export default function OnboardingPage() {
         }
       });
       setResult(res);
+      // Auto-fill passport cache immediately from CV
+      if (res?.passport || res?.proposed || res?.current_passport) {
+        cachePassport(res.passport || res.proposed || res.current_passport, user?.id);
+      }
       if (res.extraction_failed) {
         setStage("fallback");
         setAnnounce("We saved your CV but could not read your details automatically.");
       } else {
         setStage("review");
-        setAnnounce("Your details are ready to review.");
+        setAnnounce("Your details have been read from your CV and auto-filled into your passport.");
       }
     } catch (err) {
       setStage("upload");
@@ -82,7 +86,7 @@ export default function OnboardingPage() {
     }
   };
 
-  const onConfirm = async ({ fields, overwriteFields }) => {
+  const onConfirm = async ({ fields, overwriteFields, destination = "dashboard" }) => {
     setSaving(true);
     setError("");
     try {
@@ -93,8 +97,12 @@ export default function OnboardingPage() {
         extractedProfile: result?.extracted_profile,
       });
       cachePassport(res.passport, user?.id);
-      setAnnounce("Saved. Taking you to your dashboard.");
-      goDashboard();
+      setAnnounce("Saved. Taking you to your destination.");
+      if (destination === "passport") {
+        router.push("/passport");
+      } else {
+        goDashboard();
+      }
     } catch (err) {
       setError(err?.message || "We couldn't save your details. Please try again.");
       setAnnounce("Saving failed.");
