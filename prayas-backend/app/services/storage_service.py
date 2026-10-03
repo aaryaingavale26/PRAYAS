@@ -86,7 +86,20 @@ def upload_document(
         if "duplicate" in err_msg.lower() or "already exists" in err_msg.lower() or "409" in err_msg:
             raise StorageServiceError(f"A file already exists at storage path: {clean_path}") from None
         if "bucket not found" in err_msg.lower():
-            raise StorageServiceError(f"Storage bucket '{DOCUMENTS_BUCKET}' not found in Supabase project. Please create it in the Supabase Dashboard.") from None
+            try:
+                client.storage.create_bucket(DOCUMENTS_BUCKET, options={"public": False})
+                client.storage.from_(DOCUMENTS_BUCKET).upload(
+                    path=clean_path,
+                    file=file_bytes,
+                    file_options=file_options,
+                )
+                return {
+                    "storage_path": clean_path,
+                    "bucket": DOCUMENTS_BUCKET,
+                    "status": "uploaded",
+                }
+            except Exception:
+                raise StorageServiceError(f"Storage bucket '{DOCUMENTS_BUCKET}' not found in Supabase project.") from None
         raise StorageServiceError("Failed to upload document to storage.") from None
 
 
@@ -152,3 +165,33 @@ def delete_document(storage_path: str) -> bool:
         raise
     except Exception:
         raise StorageServiceError(f"Failed to delete document at path: {clean_path}") from None
+
+
+def create_signed_url(storage_path: str, expires_in: int = 0) -> str:
+    """
+    Create a short-lived signed URL for a file in the private bucket.
+
+    Raises:
+        StorageServiceError: If storage is unconfigured or the URL cannot be created.
+    """
+    from app.core.config import settings
+
+    if not is_supabase_configured():
+        raise StorageServiceError("Storage service is unavailable: Supabase credentials not configured.")
+
+    client = get_supabase_client()
+    if client is None:
+        raise StorageServiceError("Storage service is unavailable: Failed to initialize Supabase client.")
+
+    clean_path = sanitize_storage_path(storage_path)
+    ttl = expires_in or settings.SIGNED_URL_TTL_SECONDS
+    try:
+        result = client.storage.from_(DOCUMENTS_BUCKET).create_signed_url(clean_path, ttl)
+        url = (result or {}).get("signedURL") or (result or {}).get("signedUrl")
+        if not url:
+            raise StorageServiceError("Could not create a signed URL.")
+        return url
+    except StorageServiceError:
+        raise
+    except Exception:
+        raise StorageServiceError("Could not create a signed URL.") from None

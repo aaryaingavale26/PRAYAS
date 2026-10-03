@@ -42,6 +42,16 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
             if text and text.strip():
                 extracted_pages.append(text.strip())
 
+        # OCR fallback for scanned PDFs (requires Tesseract; silently skipped if unavailable)
+        if not extracted_pages:
+            for page in doc:
+                try:
+                    ocr_text = page.get_textpage_ocr(full=True).extractText()
+                except Exception:
+                    break
+                if ocr_text and ocr_text.strip():
+                    extracted_pages.append(ocr_text.strip())
+
         return "\n\n".join(extracted_pages) if extracted_pages else ""
 
     except DocumentProcessingError:
@@ -108,3 +118,21 @@ def extract_text_from_docx(file_bytes: bytes) -> str:
     except Exception:
         # Prevent leaking low-level ZIP / XML parser traces
         raise DocumentProcessingError("Failed to extract text from DOCX: Invalid or corrupted file.") from None
+
+
+def extract_text_from_txt(file_bytes: bytes) -> str:
+    """
+    Decode plain-text document bytes (UTF-8 with Latin-1 fallback).
+
+    Raises:
+        DocumentProcessingError: If the input bytes are empty.
+    """
+    if not file_bytes:
+        raise DocumentProcessingError("Cannot process empty file: provided TXT bytes are empty.")
+
+    try:
+        text = file_bytes.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        text = file_bytes.decode("latin-1", errors="replace")
+
+    return text.replace("\r\n", "\n").replace("\r", "\n").strip()

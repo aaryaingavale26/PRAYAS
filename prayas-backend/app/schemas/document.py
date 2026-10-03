@@ -51,6 +51,8 @@ class DocumentUploadResponse(BaseModel):
     extracted_text: str = Field(default="", description="Extracted plain text content")
     indexed: bool = Field(default=False, description="Whether document text was successfully indexed into vector storage")
     chunks_count: int = Field(default=0, description="Total number of chunks created and stored")
+    doc_type: str = Field(default="other", description="resume | cover_letter | project | certificate | other")
+    index_status: str = Field(default="pending", description="pending | indexing | indexed | failed | empty")
 
     model_config = {
         "json_schema_extra": {

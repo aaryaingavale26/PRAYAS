@@ -227,6 +227,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.user !== undefined) toStore.prayasLoggedInUser = message.user;
     if (message.passport !== undefined) toStore.passportProfile = message.passport;
     if (message.documents !== undefined) toStore.userDocuments = message.documents;
+    if (message.token) toStore.authToken = message.token;
     chrome.storage.local.set(toStore, () => {
       sendResponse({ success: true, stored: toStore });
     });

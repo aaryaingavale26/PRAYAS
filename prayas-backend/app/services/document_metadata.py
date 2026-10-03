@@ -19,6 +19,7 @@ def save_document_metadata(
     file_type: Optional[str] = None,
     file_size: Optional[int] = None,
     document_id: Optional[str] = None,
+    doc_type: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Save metadata for an uploaded document into the Supabase 'documents' table.
@@ -69,9 +70,18 @@ def save_document_metadata(
         record_payload["file_size"] = file_size
     if document_id:
         record_payload["id"] = str(document_id).strip()
+    if doc_type:
+        record_payload["doc_type"] = str(doc_type).strip()
 
     try:
-        response = client.table(DOCUMENTS_TABLE).insert(record_payload).execute()
+        try:
+            response = client.table(DOCUMENTS_TABLE).insert(record_payload).execute()
+        except Exception as first_exc:
+            if "doc_type" in record_payload and "doc_type" in str(first_exc).lower():
+                record_payload.pop("doc_type", None)
+                response = client.table(DOCUMENTS_TABLE).insert(record_payload).execute()
+            else:
+                raise
         if not response.data:
             raise DocumentMetadataError("Failed to save document metadata: No record returned by database.")
         return response.data[0]

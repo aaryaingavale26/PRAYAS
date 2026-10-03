@@ -1,333 +1,329 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { checkBackendHealth, generateJobAnswer, API_BASE_URL } from "@/lib/apiClient";
-import { getPassport } from "@/lib/passportStorage";
-import { getDocuments } from "@/lib/documentService";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
+  ArrowRight,
   Bot,
-  Sparkles,
-  CheckCircle2,
-  AlertCircle,
-  Copy,
-  Check,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Loader2,
   RefreshCw,
-  Code,
-  ArrowRight
+  Send,
+  Trash2,
+  User as UserIcon,
+  UploadCloud,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
+import { askAssistant } from "@/lib/apiClient";
+import { deleteDocument, getDocuments, reindexDocument, reindexProfile } from "@/lib/documentService";
+import { Button } from "@/components/ui/Button";
+
+const PROMPT_CHIPS = [
+  "Summarize my experience",
+  "Draft an answer for 'Why do you want this job?'",
+  "What are my key skills?",
+  "When does my passport expire?",
+];
+
+const STATUS_STYLES = {
+  indexed: { label: "Indexed", cls: "bg-[#D1FAE5] text-[#065F46]" },
+  indexing: { label: "Indexing…", cls: "bg-[#DBEAFE] text-[#1E40AF]" },
+  pending: { label: "Pending", cls: "bg-[#E5E7EB] text-[#374151]" },
+  failed: { label: "Failed", cls: "bg-[#FEE2E2] text-[#991B1B]" },
+  empty: { label: "No text found", cls: "bg-[#FEF3C7] text-[#92400E]" },
+};
+
+function SourceList({ sources }) {
+  const [open, setOpen] = useState(false);
+  if (!sources?.length) return null;
+  const names = [...new Set(sources.map((s) => s.document_name))];
+  return (
+    <div className="mt-3 pt-3 border-t border-[#2C2D35] text-xs">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="inline-flex items-center gap-1.5 font-bold text-[#7CC4F2] hover:text-white cursor-pointer"
+      >
+        Based on: {names.join(", ")}
+        {open ? <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" /> : <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />}
+      </button>
+      {open && (
+        <ul className="mt-2 space-y-2">
+          {sources.map((s, i) => (
+            <li key={`${s.document_id}-${s.chunk_index}-${i}`} className="rounded-xl bg-[#18191D] border border-[#2C2D35] p-3">
+              <p className="font-bold text-[#F8F8F0]">{s.document_name}</p>
+              <p className="mt-1 text-[#B5B7C2] whitespace-pre-wrap leading-relaxed">{s.snippet}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 export default function AIAssistantPage() {
+  const [messages, setMessages] = useState([]);
   const [question, setQuestion] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const [announce, setAnnounce] = useState("");
 
-  // Backend connection status
-  const [backendHealth, setBackendHealth] = useState({ online: false, status: "checking", message: "Connecting to FastAPI backend...", url: API_BASE_URL });
-  const [checkingHealth, setCheckingHealth] = useState(false);
+  const [docs, setDocs] = useState([]);
+  const [docsLoading, setDocsLoading] = useState(true);
+  const [docsError, setDocsError] = useState("");
+  const [busyDoc, setBusyDoc] = useState(null);
 
-  // User preferences & docs
-  const [passport, setPassport] = useState(null);
-  const [documents, setDocuments] = useState([]);
-  const [useSimplified, setUseSimplified] = useState(false);
+  const endRef = useRef(null);
 
-  const checkStatus = async () => {
-    setCheckingHealth(true);
-    const health = await checkBackendHealth();
-    setBackendHealth(health);
-    setCheckingHealth(false);
-  };
-
-  useEffect(() => {
-    checkStatus();
-    async function loadData() {
-      const p = await getPassport();
-      const docs = await getDocuments();
-      setPassport(p);
-      setDocuments(docs);
-      if (p?.simplifiedLanguage) {
-        setUseSimplified(true);
-      }
+  const loadDocs = useCallback(async () => {
+    try {
+      setDocsError("");
+      setDocs(await getDocuments());
+    } catch (e) {
+      setDocsError(e.message || "Could not load your knowledge sources.");
+    } finally {
+      setDocsLoading(false);
     }
-    loadData();
   }, []);
 
-  const samplePrompts = [
-    "Why are you the ideal candidate for this Frontend role?",
-    "Describe a challenging technical project you successfully delivered.",
-    "What accessibility accommodations do you require for daily work?",
-    "How do you handle tight deadlines and ambiguous requirements?",
-  ];
+  useEffect(() => {
+    loadDocs();
+  }, [loadDocs]);
 
-  const handleGenerate = async (e) => {
-    if (e) e.preventDefault();
-    if (!question.trim()) {
-      setError("Please enter or select a job application question.");
-      return;
-    }
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, asking]);
 
-    setError("");
-    setLoading(true);
-    setResult(null);
+  const realDocs = docs.filter((d) => !d.isProfile);
 
+  const send = async (text) => {
+    const q = (text ?? question).trim();
+    if (!q || asking) return;
+    setQuestion("");
+    setMessages((m) => [...m, { role: "user", text: q }]);
+    setAsking(true);
+    setAnnounce("Thinking…");
     try {
-      const res = await generateJobAnswer({
-        question: question.trim(),
-        context: documents.map((d) => d.summary).join("\n"),
-        passportPreferences: {
-          ...passport,
-          simplifiedLanguage: useSimplified,
-        },
-      });
-      setResult(res);
-    } catch (err) {
-      setError(err.message || "Failed to generate answer. Please try again.");
+      const res = await askAssistant({ question: q });
+      setMessages((m) => [...m, { role: "assistant", ...res, text: res.answer }]);
+      setAnnounce(res.found ? "Answer ready." : "I couldn't find this in your documents.");
+    } catch (e) {
+      setMessages((m) => [...m, { role: "assistant", error: true, text: e.message || "Something went wrong." }]);
+      setAnnounce("The assistant ran into a problem.");
     } finally {
-      setLoading(false);
+      setAsking(false);
     }
   };
 
-  const handleCopy = () => {
-    if (!result?.answer) return;
-    navigator.clipboard.writeText(result.answer);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+  const onReindex = async (doc) => {
+    setBusyDoc(doc.id);
+    try {
+      if (doc.isProfile) await reindexProfile();
+      else await reindexDocument(doc.id);
+      setAnnounce(`${doc.name} re-indexed.`);
+    } catch (e) {
+      setDocsError(e.message || "Re-index failed.");
+    } finally {
+      setBusyDoc(null);
+      loadDocs();
+    }
   };
+
+  const onDelete = async (doc) => {
+    if (!window.confirm(`Delete "${doc.name}"? The assistant will stop using it.`)) return;
+    setBusyDoc(doc.id);
+    try {
+      await deleteDocument(doc.id);
+      setAnnounce(`${doc.name} deleted.`);
+    } catch (e) {
+      setDocsError(e.message || "Delete failed.");
+    } finally {
+      setBusyDoc(null);
+      loadDocs();
+    }
+  };
+
+  const noDocs = !docsLoading && !docsError && realDocs.length === 0;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 w-full space-y-8">
-      
-      {/* 1. IMAGE 1 FOLDER-TAB SECTION HEADER */}
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 w-full space-y-6">
+      <div className="sr-only" aria-live="polite" role="status">{announce}</div>
+
       <div className="flex items-center justify-between">
         <div className="folder-tab-header">
-          <span>AI APPLICATION ASSISTANT</span>
-          <ArrowRight className="h-4 w-4" />
+          <span>AI Assistant</span>
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </div>
-        <div className="text-xs font-bold text-[#646672] uppercase tracking-wider">
-          RAG FORM WRITER
-        </div>
+        <span className="text-xs font-bold text-[#646672] uppercase tracking-wider hidden sm:block">Answers from your documents only</span>
       </div>
 
-      {/* Header & Backend Status */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-[#E2E2D4]">
-        <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-black text-[#18191D] tracking-tight">
-            Grounded Application Drafting
-          </h1>
-          <p className="mt-1 text-[#4B4D56] text-sm sm:text-base max-w-2xl leading-relaxed">
-            Test AI answer generation powered by FastAPI RAG backend using your uploaded resume context and accessibility preferences.
-          </p>
-        </div>
-
-        {/* Backend Health Badge */}
-        <div className="p-3 rounded-2xl bg-white border border-[#E2E2D4] shadow-xs flex items-center gap-3">
-          <div
-            className={`h-3 w-3 rounded-full ${
-              backendHealth.online ? "bg-emerald-500 animate-pulse" : "bg-amber-400"
-            }`}
-          />
-          <div className="text-xs">
-            <p className="font-bold text-[#18191D]">
-              {backendHealth.online ? "FastAPI Online" : "Demo Mode (Mock RAG Active)"}
-            </p>
-            <p className="text-[#646672] font-mono text-[11px]">{backendHealth.url}</p>
-          </div>
-          <button
-            type="button"
-            onClick={checkStatus}
-            disabled={checkingHealth}
-            suppressHydrationWarning
-            className="p-1.5 text-[#646672] hover:text-[#18191D] hover:bg-[#F3F3E3] rounded-xl focus-visible:ring-2 focus-visible:ring-[#2F9BE0] cursor-pointer"
-            title="Recheck FastAPI connection"
-            aria-label="Recheck backend health"
-          >
-            <RefreshCw className={`h-4 w-4 ${checkingHealth ? "animate-spin text-[#1F5FBF]" : ""}`} />
-          </button>
-        </div>
+      <div>
+        <h1 className="font-display text-3xl sm:text-4xl font-black text-[#18191D] tracking-tight">Ask about your own details</h1>
+        <p className="mt-1 text-[#4B4D56] text-sm sm:text-base max-w-2xl">
+          I answer only from the documents you&apos;ve uploaded and your passport. If it isn&apos;t there, I&apos;ll tell you plainly.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* LEFT 2 COLUMNS: AI Generator Form & Output */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          <div className="browser-window-frame">
-            <div className="browser-window-header justify-between">
-              <div className="flex items-center gap-2">
-                <span className="browser-window-dot bg-[#FF5F56]"></span>
-                <span className="browser-window-dot bg-[#FFBD2E]"></span>
-                <span className="browser-window-dot bg-[#27C93F]"></span>
-                <span className="text-xs font-bold text-[#646672] ml-2">Job Application Question Prompt</span>
-              </div>
-              <span className="text-[11px] font-bold text-[#2F9BE0]">LLM Assistant</span>
-            </div>
-
-            <div className="p-6 space-y-4">
-              {/* Quick Sample Prompts */}
-              <div>
-                <span className="text-xs font-bold text-[#646672] uppercase tracking-wider block mb-2">
-                  Sample Employer Questions:
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {samplePrompts.map((prompt, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setQuestion(prompt)}
-                      suppressHydrationWarning
-                      className="px-3 py-1.5 rounded-xl border border-[#E2E2D4] bg-[#FBFBEF] hover:bg-[#EFF8FF] hover:border-[#2F9BE0] text-[#18191D] text-xs text-left transition-colors font-semibold cursor-pointer"
-                    >
-                      &quot;{prompt}&quot;
-                    </button>
-                  ))}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* CHAT */}
+        <section aria-label="Chat" className="lg:col-span-2 bg-[#1E1F24] rounded-3xl border-2 border-[#2C2D35] text-[#F8F8F0] flex flex-col min-h-[520px] shadow-xl">
+          <div className="flex-1 p-5 sm:p-6 space-y-4 overflow-y-auto max-h-[60vh]" role="log" aria-live="off" aria-label="Conversation">
+            {messages.length === 0 && !noDocs && (
+              <div className="text-center py-8">
+                <div className="h-14 w-14 mx-auto rounded-2xl bg-[#2F9BE0] flex items-center justify-center mb-3">
+                  <Bot className="h-7 w-7 text-white" aria-hidden="true" />
                 </div>
+                <p className="font-display text-xl font-extrabold">What would you like to know?</p>
+                <p className="text-sm text-[#9A9CA8] mt-1">Try one of the suggestions below.</p>
               </div>
+            )}
 
-              {/* Text Input Area */}
-              <div>
-                <label htmlFor="question-input" className="block text-sm font-bold text-[#18191D] mb-1.5">
-                  Application Question:
-                </label>
-                <textarea
-                  id="question-input"
-                  rows={4}
-                  placeholder="e.g. Describe your experience with modern accessible web engineering and why you are interested in this position..."
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  className="w-full rounded-2xl border-2 border-[#D5D5C8] p-3.5 text-base text-[#18191D] placeholder:text-[#A0A2AB] focus:border-[#1F5FBF] hover:border-[#18191D] min-h-[110px]"
-                />
+            {noDocs && (
+              <div className="rounded-2xl bg-[#18191D] border border-[#2C2D35] p-6 text-center">
+                <UploadCloud className="h-8 w-8 mx-auto text-[#2F9BE0]" aria-hidden="true" />
+                <p className="mt-3 font-display text-lg font-extrabold">You haven&apos;t uploaded any documents yet</p>
+                <p className="text-sm text-[#B5B7C2] mt-1">I have nothing to answer from. Upload your CV or other documents first.</p>
+                <Link href="/documents" className="inline-block mt-4">
+                  <span className="prayas-btn-primary">Go to uploads</span>
+                </Link>
               </div>
+            )}
 
-              {/* Preferences Strip */}
-              <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#FBFBEF] rounded-2xl border border-[#E2E2D4] text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-[#18191D]">Answer Style:</span>
-                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-[#18191D]">
-                    <input
-                      type="checkbox"
-                      checked={useSimplified}
-                      onChange={(e) => setUseSimplified(e.target.checked)}
-                      className="h-4 w-4 rounded border-[#D5D5C8] text-[#1F5FBF] focus:ring-[#2F9BE0]"
-                    />
-                    <span>Simplified Plain-English Bullet Points</span>
-                  </label>
+            {messages.map((m, i) =>
+              m.role === "user" ? (
+                <div key={i} className="flex justify-end gap-2">
+                  <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-[#2F9BE0] text-white px-4 py-3 text-sm font-semibold whitespace-pre-wrap">{m.text}</div>
+                  <UserIcon className="h-6 w-6 mt-1 text-[#9A9CA8] shrink-0" aria-hidden="true" />
                 </div>
-                <span className="text-[#646672] font-bold">
-                  Context: <strong>{documents.length} Uploaded Files</strong>
-                </span>
-              </div>
-
-              {error && (
-                <div role="alert" className="p-3 rounded-xl bg-[#FEE2E2] border border-[#FECACA] text-[#991B1B] text-sm flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-[#DC2626] shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <Button
-                type="button"
-                variant="secondary"
-                size="lg"
-                onClick={handleGenerate}
-                isLoading={loading}
-                leftIcon={<Bot className="h-5 w-5" />}
-                className="w-full font-black text-sm"
-              >
-                Generate Grounded AI Answer
-              </Button>
-            </div>
-          </div>
-
-          {/* AI Output Card in Browser-Window Frame */}
-          {result && (
-            <div className="browser-window-frame">
-              <div className="browser-window-header justify-between bg-[#F0FDF4] border-b border-[#BBF7D0]">
-                <div className="flex items-center gap-2">
-                  <span className="browser-window-dot bg-[#FF5F56]"></span>
-                  <span className="browser-window-dot bg-[#FFBD2E]"></span>
-                  <span className="browser-window-dot bg-[#27C93F]"></span>
-                  <span className="text-xs font-bold text-[#166534] ml-2">Grounded AI Draft Response</span>
-                </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopy}
-                  leftIcon={copied ? <Check className="h-4 w-4 text-[#059669]" /> : <Copy className="h-4 w-4" />}
-                  className="text-xs font-bold bg-white"
-                >
-                  {copied ? "Copied!" : "Copy Answer"}
-                </Button>
-              </div>
-
-              <div className="p-6 space-y-4">
-                <div className="p-4 rounded-2xl bg-[#FBFBEF] border border-[#E2E2D4] text-base text-[#18191D] leading-relaxed whitespace-pre-line font-medium">
-                  {result.answer}
-                </div>
-
-                <div className="pt-3 border-t border-[#E2E2D4] flex flex-wrap items-center justify-between text-xs text-[#646672] gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-[#18191D]">Sources:</span>
-                    {result.sourceDocs?.map((src, idx) => (
-                      <Badge key={idx} variant="default" className="text-[10px]">
-                        {src}
-                      </Badge>
-                    ))}
+              ) : (
+                <div key={i} className="flex gap-2">
+                  <Bot className="h-6 w-6 mt-1 text-[#2F9BE0] shrink-0" aria-hidden="true" />
+                  <div className={`max-w-[88%] rounded-2xl rounded-tl-sm px-4 py-3 text-sm border ${m.error ? "bg-[#3B1D1D] border-[#7F1D1D]" : "bg-[#272830] border-[#33363F]"}`}>
+                    <p className="whitespace-pre-wrap leading-relaxed">{m.text}</p>
+                    {m.emptyState && (
+                      <Link href={m.uploadUrl || "/documents"} className="inline-block mt-2 underline font-bold text-[#7CC4F2]">Upload documents →</Link>
+                    )}
+                    {!m.found && !m.emptyState && !m.error && (
+                      <Link href={m.uploadUrl || "/documents"} className="inline-block mt-2 underline font-bold text-[#7CC4F2]">Add more documents →</Link>
+                    )}
+                    <SourceList sources={m.sources} />
                   </div>
-
-                  <span className="font-bold text-[#065F46]">
-                    Truthful First-Person Profile Score: {Math.round((result.confidenceScore || 0.95) * 100)}%
-                  </span>
                 </div>
+              )
+            )}
+
+            {asking && (
+              <div className="flex gap-2 items-center text-sm text-[#9A9CA8]">
+                <Loader2 className="h-5 w-5 animate-spin text-[#2F9BE0]" aria-hidden="true" /> Searching your documents…
               </div>
+            )}
+            <div ref={endRef} />
+          </div>
+
+          <div className="border-t border-[#2C2D35] p-4 sm:p-5 space-y-3">
+            <div className="flex flex-wrap gap-2" aria-label="Suggested questions">
+              {PROMPT_CHIPS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  disabled={asking}
+                  onClick={() => send(c)}
+                  className="text-xs font-bold px-3 py-2 rounded-full border border-[#4B4D56] bg-[#18191D] hover:border-[#2F9BE0] hover:text-[#7CC4F2] disabled:opacity-50 cursor-pointer text-left"
+                >
+                  {c}
+                </button>
+              ))}
             </div>
+            <form
+              onSubmit={(e) => { e.preventDefault(); send(); }}
+              className="flex gap-2"
+            >
+              <label htmlFor="assistant-question" className="sr-only">Ask the assistant</label>
+              <input
+                id="assistant-question"
+                type="text"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder="Ask about your experience, skills, passport…"
+                className="flex-1 rounded-xl bg-[#18191D] border-2 border-[#33363F] focus:border-[#2F9BE0] px-4 py-3 text-sm text-white placeholder:text-[#7A7C88] outline-none"
+                autoComplete="off"
+              />
+              <Button type="submit" variant="blue" disabled={asking || !question.trim()} aria-label="Send question" leftIcon={<Send className="h-4 w-4" />}>
+                Ask
+              </Button>
+            </form>
+          </div>
+        </section>
+
+        {/* KNOWLEDGE SOURCES */}
+        <aside aria-label="Knowledge sources" className="bg-white rounded-3xl border-2 border-[#E2E2D4] p-5 h-fit">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display text-lg font-extrabold text-[#18191D]">Knowledge sources</h2>
+            <button type="button" onClick={loadDocs} className="p-2 rounded-lg hover:bg-[#F3F3E3] cursor-pointer" aria-label="Refresh knowledge sources">
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+
+          {docsLoading ? (
+            <p className="text-sm text-[#646672] flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Loading…</p>
+          ) : docsError ? (
+            <p role="alert" className="text-sm text-[#991B1B] flex items-start gap-2"><AlertCircle className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />{docsError}</p>
+          ) : docs.length === 0 ? (
+            <p className="text-sm text-[#4B4D56]">Nothing indexed yet.</p>
+          ) : (
+            <ul className="space-y-3">
+              {docs.map((d) => {
+                const st = STATUS_STYLES[d.status] || STATUS_STYLES.pending;
+                const busy = busyDoc === d.id;
+                return (
+                  <li key={d.id} className="rounded-2xl border border-[#E2E2D4] bg-[#FBFBEF] p-3">
+                    <div className="flex items-start gap-2">
+                      <FileText className="h-5 w-5 mt-0.5 text-[#1F5FBF] shrink-0" aria-hidden="true" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-[#18191D] truncate" title={d.name}>{d.name}</p>
+                        <div className="mt-1 flex items-center gap-2 flex-wrap">
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
+                          <span className="text-[11px] text-[#646672]">{d.chunkCount} chunks</span>
+                        </div>
+                        {d.error && <p className="mt-1 text-[11px] text-[#991B1B]">{d.error}</p>}
+                      </div>
+                    </div>
+                    <div className="mt-2 flex justify-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => onReindex(d)}
+                        disabled={busy}
+                        className="text-xs font-bold px-2.5 py-1.5 rounded-lg hover:bg-[#E8E8DC] disabled:opacity-50 inline-flex items-center gap-1 cursor-pointer"
+                        aria-label={`Re-index ${d.name}`}
+                      >
+                        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />}
+                        Re-index
+                      </button>
+                      {!d.isProfile && (
+                        <button
+                          type="button"
+                          onClick={() => onDelete(d)}
+                          disabled={busy}
+                          className="text-xs font-bold px-2.5 py-1.5 rounded-lg text-rose-600 hover:bg-rose-50 disabled:opacity-50 inline-flex items-center gap-1 cursor-pointer"
+                          aria-label={`Delete ${d.name}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> Delete
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           )}
 
-        </div>
-
-        {/* RIGHT COLUMN: Backend Schema Guide */}
-        <div className="space-y-6">
-          <div className="bg-[#18191D] border-2 border-[#2C2D35] rounded-3xl p-6 text-white shadow-xl">
-            <h3 className="font-display font-bold text-base text-white flex items-center gap-2 mb-3 pb-3 border-b border-[#2C2D35]">
-              <Code className="h-4 w-4 text-[#2F9BE0]" />
-              <span>FastAPI Backend Specs (Member 2)</span>
-            </h3>
-
-            <div className="space-y-3 text-xs text-[#A0A2AB]">
-              <p>The companion and web app communicate with these scoped endpoints:</p>
-
-              <div className="p-3 rounded-2xl bg-[#121316] text-[#E0E2EC] font-mono space-y-2 text-[11px] border border-[#2C2D35]">
-                <div>
-                  <span className="text-[#2F9BE0] font-bold">GET</span> /health
-                  <p className="text-[#71737E] text-[10px]">Backend health check</p>
-                </div>
-                <div className="border-t border-[#2C2D35] pt-1.5">
-                  <span className="text-[#2F9BE0] font-bold">POST</span> /api/rag-answer
-                  <p className="text-[#71737E] text-[10px]">Body: {`{ user_id, question, context }`}</p>
-                </div>
-                <div className="border-t border-[#2C2D35] pt-1.5">
-                  <span className="text-[#2F9BE0] font-bold">POST</span> /api/documents/upload
-                  <p className="text-[#71737E] text-[10px]">FormData: file, user_id, category</p>
-                </div>
-              </div>
-
-              <div className="p-3.5 bg-[#CEEEFD] rounded-2xl border border-[#BAE6FD] text-[#18191D] space-y-1 text-xs">
-                <p className="font-bold text-[#0284C7] flex items-center gap-1">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>Strict User Data Isolation</span>
-                </p>
-                <p className="text-[#0369A1] leading-snug">
-                  Document embeddings and answers are strictly isolated by <code className="bg-white/60 px-1 rounded">user_id</code> so candidate data is never shared across sessions.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
+          <Link href="/documents" className="mt-4 inline-flex items-center gap-1.5 text-sm font-extrabold text-[#1F5FBF] hover:underline">
+            <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Upload more documents
+          </Link>
+        </aside>
       </div>
     </div>
   );

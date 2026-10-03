@@ -50,6 +50,17 @@ class Settings(BaseSettings):
     # File Upload Limits
     MAX_UPLOAD_SIZE_MB: int = 10
 
+    # RAG chunking (~4 chars per token: 2400 chars ~= 600 tokens, 400 chars ~= 100 tokens overlap)
+    CHUNK_SIZE_CHARS: int = 2400
+    CHUNK_OVERLAP_CHARS: int = 400
+    RAG_TOP_K: int = 6
+
+    # Per-user rate limiting for LLM-backed endpoints (requests per minute)
+    RATE_LIMIT_PER_MINUTE: int = 20
+
+    # Private storage signed URL lifetime
+    SIGNED_URL_TTL_SECONDS: int = 300
+
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:

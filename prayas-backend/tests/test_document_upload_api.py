@@ -95,7 +95,7 @@ class TestDocumentUploadAPI(unittest.TestCase):
         response = self.client.post(
             "/api/v1/documents/upload",
             data={"user_id": "user-1234"},
-            files={"file": ("notes.txt", b"plain text notes", "text/plain")},
+            files={"file": ("notes.rtf", b"{\\rtf1 plain text notes}", "application/rtf")},
         )
         self.assertEqual(response.status_code, 400)
         self.assertIn("Unsupported file extension", response.json()["error"])

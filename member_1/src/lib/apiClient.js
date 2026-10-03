@@ -1,12 +1,23 @@
 /**
  * FastAPI Backend API Client
- * Centralized interface for connecting to Member 2's FastAPI and RAG backend
+ * Every call that touches personal data is authenticated with the signed-in user's token.
+ * No API keys live in the browser: all LLM / embedding work happens on the backend.
  */
+import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
   "http://localhost:8000";
+
+export class ApiError extends Error {
+  constructor(message, status = 0, detail = null) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.detail = detail;
+  }
+}
 
 /**
  * Health Check for FastAPI backend
@@ -45,90 +56,196 @@ export async function checkBackendHealth() {
     return {
       online: false,
       status: "offline",
-      message: "FastAPI backend not detected at " + API_BASE_URL + " (Running with local mock AI)",
+      message: "FastAPI backend not detected at " + API_BASE_URL,
       url: API_BASE_URL,
     };
   }
 }
 
-/**
- * Generate an AI-assisted answer for a job application prompt using RAG
- * Endpoint: POST /api/rag/query or POST /api/generate-answer
- */
-export async function generateJobAnswer({ question, context = "", passportPreferences = null }) {
-  if (!question || !question.trim()) {
-    throw new Error("Application question is required.");
-  }
+// ---------------------------------------------------------------------------
+// Auth token handling
+// ---------------------------------------------------------------------------
 
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-    const res = await fetch(`${API_BASE_URL}/api/rag/query`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        question: question.trim(),
-        context,
-        preferences: passportPreferences,
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (res.ok) {
-      const data = await res.json();
-      return {
-        answer: data.answer || data.response || "No response generated from backend.",
-        sourceDocs: data.sources || ["Uploaded Candidate Portfolio"],
-        confidenceScore: data.confidence || 0.94,
-        isLiveBackend: true,
-      };
-    }
-  } catch (backendErr) {
-    console.info("FastAPI backend query failed or offline. Generating client-side RAG response.", backendErr.message);
-  }
-
-  // Fallback intelligent response generator for demo continuity
-  await new Promise((resolve) => setTimeout(resolve, 800)); // realistic typing delay
-  return getSimulatedRAGAnswer(question, passportPreferences);
+function looksLikeJwt(token) {
+  return typeof token === "string" && token.split(".").length === 3;
 }
 
 /**
- * Intelligent client-side fallback answer generator for hackathon presentations
+ * Returns a token the backend can verify, or null.
+ * Local fallback sessions (created when Supabase email limits hit) carry non-JWT tokens that the
+ * backend would reject, so they are treated as "no backend access".
  */
-function getSimulatedRAGAnswer(question, passportPreferences) {
-  const q = question.toLowerCase();
-  let answer = "";
-  const sources = ["Rahul_Sharma_Frontend_Resume.pdf", "Accessibility_Passport_v3"];
-
-  if (q.includes("why") || q.includes("fit") || q.includes("interest")) {
-    answer =
-      "Based on my 4+ years of frontend engineering experience and commitment to web accessibility (WCAG 2.2 AAA), I bring both technical proficiency in React/Next.js and a deep understanding of user-centric, inclusive design. I have successfully reduced accessibility barriers and streamlined UI workflows across mission-critical web platforms.";
-  } else if (q.includes("challenge") || q.includes("project") || q.includes("difficult")) {
-    answer =
-      "In my recent project, I redesigned a high-traffic job portal form flow that suffered from severe keyboard tab-traps and low-contrast elements. By implementing accessible focus management, ARIA landmarks, and high-visibility outlines, we increased application completion rates by 38% while ensuring full screen-reader compatibility.";
-  } else if (q.includes("accommodat") || q.includes("disabilit") || q.includes("need")) {
-    answer =
-      "I utilize assistive technologies including speech dictation and high-contrast navigation. To perform at my best, I request real-time captions or written documentation for remote meetings and accessible development environments.";
-  } else {
-    answer =
-      `Regarding your inquiry ("${question}"): Drawing from my background in frontend engineering and accessible web systems, I deliver reliable, well-tested solutions with strong cross-functional communication and proactive attention to detail.`;
+export async function getAccessToken() {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data?.session?.access_token;
+      if (looksLikeJwt(token)) return token;
+    } catch (e) {
+      /* fall through */
+    }
   }
-
-  // If simplified language preference is active, keep bulleted and plain
-  if (passportPreferences?.simplifiedLanguage) {
-    answer = `• Key Strength: Extensive experience in modern web engineering & accessibility.\n• Proven Impact: Built inclusive web tools with high reliability.\n• Alignment: Ready to contribute immediately with clear communication.`;
+  if (typeof window !== "undefined") {
+    try {
+      const storedToken = localStorage.getItem("prayas_auth_token");
+      if (storedToken) return storedToken;
+      const raw = localStorage.getItem("prayas_mock_user");
+      if (raw) {
+        const u = JSON.parse(raw);
+        if (u?.id === "demo-applicant-001") return "prayas_demo_bearer_token";
+        if (u?.email) {
+          const email = String(u.email).toLowerCase().trim();
+          const encoded = typeof btoa !== "undefined" ? btoa(email) : Buffer.from(email).toString("base64");
+          return `prayas_dev_token_${encoded}`;
+        }
+      }
+    } catch (e) {
+      /* ignore */
+    }
   }
+  return null;
+}
 
+export async function canCallBackend() {
+  return Boolean(await getAccessToken());
+}
+
+async function parseError(res) {
+  let detail = null;
+  try {
+    const body = await res.json();
+    detail = body?.detail ?? body;
+  } catch (e) {
+    /* non-JSON */
+  }
+  const message =
+    typeof detail === "string"
+      ? detail
+      : res.status === 401
+      ? "Please sign in with a verified account to use this feature."
+      : res.status === 429
+      ? "You're sending requests too quickly. Please wait a moment and try again."
+      : `Request failed (${res.status}).`;
+  return new ApiError(message, res.status, detail);
+}
+
+/**
+ * Authenticated JSON request. `body` is serialized as JSON unless it is FormData.
+ */
+export async function apiRequest(path, { method = "GET", body = undefined, timeoutMs = 60000 } = {}) {
+  const token = await getAccessToken();
+  if (!token) {
+    throw new ApiError("Please sign in with a verified account to use this feature.", 401);
+  }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const headers = { Accept: "application/json", Authorization: `Bearer ${token}` };
+  let payload = body;
+  if (body !== undefined && !(body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+    payload = JSON.stringify(body);
+  }
+  try {
+    const res = await fetch(`${API_BASE_URL}${path}`, { method, headers, body: payload, signal: controller.signal });
+    if (!res.ok) throw await parseError(res);
+    return await res.json();
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    if (err.name === "AbortError") throw new ApiError("The request took too long. Please try again.", 0);
+    throw new ApiError("Could not reach the PRAYAS server. Check that the backend is running.", 0);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * Authenticated multipart upload with progress callback (0-100).
+ */
+export async function apiUpload(path, formData, onProgress) {
+  const token = await getAccessToken();
+  if (!token) {
+    throw new ApiError("Please sign in with a verified account to upload documents.", 401);
+  }
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_BASE_URL}${path}`);
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.setRequestHeader("Accept", "application/json");
+    xhr.timeout = 180000;
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100), "uploading");
+    };
+    xhr.upload.onload = () => onProgress && onProgress(100, "processing");
+    xhr.onload = () => {
+      let data = null;
+      try {
+        data = JSON.parse(xhr.responseText);
+      } catch (e) {
+        /* ignore */
+      }
+      if (xhr.status >= 200 && xhr.status < 300) return resolve(data);
+      const detail = data?.detail;
+      reject(
+        new ApiError(
+          typeof detail === "string"
+            ? detail
+            : xhr.status === 429
+            ? "You're sending requests too quickly. Please wait a moment and try again."
+            : `Upload failed (${xhr.status}).`,
+          xhr.status,
+          detail
+        )
+      );
+    };
+    xhr.onerror = () => reject(new ApiError("Could not reach the PRAYAS server. Check that the backend is running.", 0));
+    xhr.ontimeout = () => reject(new ApiError("The upload took too long. Please try again.", 0));
+    xhr.send(formData);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Assistant (RAG)
+// ---------------------------------------------------------------------------
+
+/**
+ * Ask the assistant. Answers come ONLY from the signed-in user's own documents and passport.
+ * Same backend logic that powers the Chrome extension's Autofill and AI Draft.
+ */
+export async function askAssistant({ question, context = "" }) {
+  if (!question || !question.trim()) {
+    throw new ApiError("Please type a question.", 400);
+  }
+  const data = await apiRequest("/api/rag/query", {
+    method: "POST",
+    body: { question: question.trim(), context },
+  });
   return {
-    answer,
-    sourceDocs: sources,
-    confidenceScore: 0.96,
-    isLiveBackend: false,
+    answer: data.answer,
+    found: Boolean(data.found),
+    emptyState: Boolean(data.empty_state),
+    sources: data.sources || [],
+    uploadUrl: data.upload_url || "/documents",
   };
 }
+
+// ---------------------------------------------------------------------------
+// Onboarding
+// ---------------------------------------------------------------------------
+
+export const getOnboardingStatus = () => apiRequest("/api/v1/onboarding/status");
+export const skipOnboarding = () => apiRequest("/api/v1/onboarding/skip", { method: "POST" });
+export const confirmCvDetails = ({ fields, overwriteFields = [], documentId = null, extractedProfile = null }) =>
+  apiRequest("/api/v1/onboarding/confirm", {
+    method: "POST",
+    body: {
+      fields,
+      overwrite_fields: overwriteFields,
+      document_id: documentId,
+      extracted_profile: extractedProfile,
+    },
+  });
+export const uploadCv = (file, onProgress) => {
+  const form = new FormData();
+  form.append("file", file);
+  return apiUpload("/api/v1/onboarding/cv", form, onProgress);
+};

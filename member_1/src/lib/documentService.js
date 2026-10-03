@@ -1,161 +1,100 @@
 /**
- * Document Hub Service
- * Manages applicant resumes, cover letters, and project portfolios
- * Coordinates with FastAPI backend (Member 2) and provides local storage fallback
+ * Document Hub Service (knowledge sources)
+ * All documents live on the backend, scoped to the signed-in user. Nothing is stored in
+ * localStorage and there are no sample/fake documents.
  */
+import { apiRequest, apiUpload } from "@/lib/apiClient";
 
-const STORAGE_KEY = "prayas_uploaded_documents";
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:8000";
+// Standard allowed file extensions and maximum size (10MB). Matches server-side validation.
+export const ALLOWED_EXTENSIONS = [".pdf", ".docx", ".txt"];
+export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
-// Standard allowed file extensions and maximum size (10MB)
-export const ALLOWED_EXTENSIONS = [".pdf", ".docx", ".doc", ".txt"];
-export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
-
-export const DEFAULT_SAMPLE_DOCS = [
-  {
-    id: "doc-sample-1",
-    name: "Rahul_Sharma_Frontend_Resume.pdf",
-    category: "resume",
-    sizeBytes: 1024 * 340, // 340 KB
-    uploadedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    status: "indexed", // "indexed" | "processing" | "ready"
-    summary: "Senior Frontend Engineer with 4+ years of experience in React, Next.js, WCAG 2.2 accessibility, and Tailwind CSS. Specializes in building accessible web applications.",
-    skills: ["React", "Next.js", "WCAG 2.2", "Tailwind CSS", "JavaScript", "ARIA Standards"],
-  },
-  {
-    id: "doc-sample-2",
-    name: "Accessibility_Cover_Letter.docx",
-    category: "cover_letter",
-    sizeBytes: 1024 * 85, // 85 KB
-    uploadedAt: new Date(Date.now() - 86400000).toISOString(),
-    status: "indexed",
-    summary: "Personalized statement highlighting passion for inclusive web technologies, cross-functional collaboration, and accessibility-first engineering principles.",
-    skills: ["Inclusive Design", "Team Leadership", "Assistive Tech Integration"],
-  },
+export const DOC_TYPES = [
+  { value: "resume", label: "Resume / CV" },
+  { value: "cover_letter", label: "Cover letter" },
+  { value: "project", label: "Project document" },
+  { value: "certificate", label: "Certificate" },
+  { value: "other", label: "Other" },
 ];
 
-/**
- * Fetch list of all uploaded documents
- */
-export async function getDocuments() {
-  if (typeof window === "undefined") return DEFAULT_SAMPLE_DOCS;
-
-  // Try reading from localStorage first
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch (e) {
-      console.error("Failed to parse stored documents", e);
-    }
-  }
-
-  // Initialize with sample documents if empty
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_SAMPLE_DOCS));
-  return DEFAULT_SAMPLE_DOCS;
-}
-
-/**
- * Upload a new applicant document
- */
-export async function uploadDocument(file, category = "resume", onProgress) {
-  // 1. Client-side validation
-  const ext = "." + file.name.split(".").pop().toLowerCase();
+/** Client-side pre-check (the server validates again). Returns an error string or null. */
+export function validateFile(file) {
+  if (!file) return "Please choose a file.";
+  const ext = "." + (file.name.split(".").pop() || "").toLowerCase();
   if (!ALLOWED_EXTENSIONS.includes(ext)) {
-    throw new Error(`Unsupported file type: ${ext}. Please upload a PDF, DOCX, DOC, or TXT file.`);
+    return `Unsupported file type (${ext}). Please upload a PDF, DOCX or TXT file.`;
   }
-
   if (file.size > MAX_FILE_SIZE_BYTES) {
-    throw new Error(`File is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum allowed size is 10MB.`);
+    return `This file is too large (${(file.size / (1024 * 1024)).toFixed(1)} MB). The maximum is 10 MB.`;
   }
-
-  // 2. Try FastAPI Backend if available
-  let backendResponse = null;
-  let activeUserId = null;
-  try {
-    const rawUser = typeof window !== "undefined" ? localStorage.getItem("prayas_mock_user") : null;
-    if (rawUser) {
-      activeUserId = JSON.parse(rawUser)?.id;
-    }
-  } catch (e) {}
-
-  try {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("category", category);
-    if (activeUserId) {
-      formData.append("user_id", activeUserId);
-    }
-
-    const res = await fetch(`${API_BASE_URL}/api/documents/upload`, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (res.ok) {
-      backendResponse = await res.json();
-    }
-  } catch (backendError) {
-    console.info("FastAPI backend not reachable at localhost:8000. Storing document locally for hackathon demo.", backendError.message);
-  }
-
-  // 3. Create document record
-  const newDoc = {
-    id: backendResponse?.id || `doc-${Date.now()}`,
-    name: file.name,
-    category,
-    sizeBytes: file.size,
-    uploadedAt: new Date().toISOString(),
-    status: "indexed",
-    userId: activeUserId || "anonymous",
-    summary: backendResponse?.summary || `Uploaded document (${file.name}) indexed by PRAYAS RAG engine. Available for automatic form answer generation.`,
-    skills: backendResponse?.skills || ["Extracted by PRAYAS AI Engine"],
-  };
-
-  // 4. Save to local storage & sync with extension
-  const currentDocs = await getDocuments();
-  const updatedDocs = [newDoc, ...currentDocs];
-  if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedDocs));
-    window.dispatchEvent(new CustomEvent("prayas-documents-updated", { detail: updatedDocs }));
-    window.postMessage({ type: "PRAYAS_DOCUMENTS_SYNC", documents: updatedDocs, userId: activeUserId }, "*");
-  }
-
-  return newDoc;
+  if (file.size === 0) return "This file is empty.";
+  return null;
 }
 
-/**
- * Delete a document by ID
- */
-export async function deleteDocument(docId) {
-  // Try backend delete
-  try {
-    await fetch(`${API_BASE_URL}/api/documents/${docId}`, {
-      method: "DELETE",
-    });
-  } catch (e) {
-    console.info("FastAPI backend delete skipped (offline/demo mode).");
-  }
-
-  // Update local storage
-  const currentDocs = await getDocuments();
-  const updatedDocs = currentDocs.filter((d) => d.id !== docId);
+function notify(docs) {
   if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedDocs));
-    window.dispatchEvent(new CustomEvent("prayas-documents-updated", { detail: updatedDocs }));
+    window.dispatchEvent(new CustomEvent("prayas-documents-updated", { detail: docs }));
   }
+}
 
-  return updatedDocs;
+function normalize(d) {
+  return {
+    id: d.id,
+    name: d.name,
+    category: d.doc_type,
+    sizeBytes: d.size_bytes || 0,
+    uploadedAt: d.uploaded_at,
+    status: d.index_status, // pending | indexing | indexed | failed | empty
+    error: d.index_error,
+    chunkCount: d.chunk_count || 0,
+    isProfile: Boolean(d.is_profile),
+  };
+}
+
+/** List the signed-in user's knowledge sources (including the profile pseudo-document). */
+export async function getDocuments() {
+  const data = await apiRequest("/api/v1/documents");
+  return (data.documents || []).map(normalize);
+}
+
+/** Upload a document as a given type. Returns the backend upload response. */
+export async function uploadDocument(file, category = "other", onProgress) {
+  const problem = validateFile(file);
+  if (problem) throw new Error(problem);
+  const form = new FormData();
+  form.append("file", file);
+  form.append("doc_type", category);
+  const res = await apiUpload("/api/v1/documents/upload", form, onProgress);
+  notify(null);
+  return res;
+}
+
+export async function deleteDocument(docId) {
+  await apiRequest(`/api/v1/documents/${encodeURIComponent(docId)}`, { method: "DELETE" });
+  notify(null);
+}
+
+export async function reindexDocument(docId) {
+  const res = await apiRequest(`/api/v1/documents/${encodeURIComponent(docId)}/reindex`, { method: "POST" });
+  notify(null);
+  return res;
+}
+
+export async function reindexProfile() {
+  return apiRequest("/api/v1/documents/profile/reindex", { method: "POST" });
+}
+
+/** Short-lived signed URL for viewing a private file. */
+export async function getDocumentUrl(docId) {
+  const res = await apiRequest(`/api/v1/documents/${encodeURIComponent(docId)}/url`);
+  return res.url;
 }
 
 /**
  * Format bytes into human readable size
  */
 export function formatBytes(bytes) {
-  if (bytes === 0) return "0 Bytes";
+  if (!bytes) return "0 Bytes";
   const k = 1024;
   const sizes = ["Bytes", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));

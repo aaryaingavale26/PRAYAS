@@ -1,6 +1,7 @@
 import logging
 from typing import Any, Dict, Optional
 
+from app.core.config import settings
 from app.schemas.chunk import DocumentIndexSummary
 from app.services.chunk_storage import (
     ChunkStorageError,
@@ -64,7 +65,11 @@ def index_document(
 
     # 3. Segment extracted text into chunks with character offsets
     try:
-        chunks = chunk_document_text(extracted_text)
+        chunks = chunk_document_text(
+            extracted_text,
+            chunk_size=settings.CHUNK_SIZE_CHARS,
+            chunk_overlap=settings.CHUNK_OVERLAP_CHARS,
+        )
     except Exception as exc:
         logger.error("Failed to chunk text for document %s", clean_doc_id)
         raise DocumentIndexingError("Failed to segment document text into chunks.") from None

@@ -8,6 +8,7 @@ import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
+import { useOnboardingStatus } from "@/lib/useOnboardingStatus";
 
 export default function DashboardLayout({ children }) {
   const router = useRouter();
@@ -20,7 +21,16 @@ export default function DashboardLayout({ children }) {
     }
   }, [user, loading, router]);
 
-  if (loading) {
+  const { status: onboarding, loading: onboardingLoading, supported: onboardingSupported } = useOnboardingStatus(user);
+
+  // First-time users must see the CV upload step BEFORE the dashboard
+  useEffect(() => {
+    if (!loading && user && !onboardingLoading && onboarding?.needs_onboarding) {
+      router.replace("/onboarding");
+    }
+  }, [loading, user, onboardingLoading, onboarding, router]);
+
+  if (loading || (user && (onboardingLoading || onboarding?.needs_onboarding))) {
     return (
       <div className="min-h-[calc(100vh-80px)] flex items-center justify-center bg-[#FBFBEF]">
         <div className="flex flex-col items-center gap-3 p-8">
@@ -50,6 +60,18 @@ export default function DashboardLayout({ children }) {
             </div>
             <Link href="/auth/login?redirect=/dashboard">
               <span className="underline hover:text-white/90 ml-2 font-extrabold">Sign In to Save Data &rarr;</span>
+            </Link>
+          </div>
+        )}
+        {user && onboardingSupported && onboarding && !onboarding.has_cv && (
+          <div
+            role="region"
+            aria-label="CV reminder"
+            className="bg-[#18191D] text-[#FBFBEF] px-6 py-3 text-xs sm:text-sm font-semibold flex flex-wrap items-center justify-between gap-2 border-b border-[#2C2D35]"
+          >
+            <span>Add your CV so PRAYAS can fill your passport and answer from your real experience.</span>
+            <Link href="/onboarding" className="underline underline-offset-4 font-extrabold text-[#2F9BE0] hover:text-white">
+              Upload your CV &rarr;
             </Link>
           </div>
         )}

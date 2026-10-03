@@ -14,7 +14,8 @@ const testSuites = [
   { name: 'Accessibility Passport Autofill Matching', file: 'test-autofill.js' },
   { name: 'Backend API Contracts & Offline Resilience', file: 'test-backend.js' },
   { name: 'WCAG 2.2 Scorecard & User Consent Gate', file: 'test-scorecard.js' },
-  { name: 'Voice Command Engine & Security Whitelist', file: 'test-voice.js' }
+  { name: 'Voice Command Engine & Security Whitelist', file: 'test-voice.js' },
+  { name: 'Central Dispatcher & Bugfix Verification', file: 'test-dispatcher-bugfix.js' }
 ];
 
 console.log('================================================================');

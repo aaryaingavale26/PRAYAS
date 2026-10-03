@@ -90,8 +90,9 @@
         const rawUser = localStorage.getItem('prayas_mock_user');
         const rawPassport = localStorage.getItem('prayas_user_passport');
         const rawDocs = localStorage.getItem('prayas_uploaded_documents');
+        const rawToken = localStorage.getItem('prayas_auth_token');
 
-        if (rawUser || rawPassport || rawDocs) {
+        if (rawUser || rawPassport || rawDocs || rawToken) {
           const user = rawUser ? JSON.parse(rawUser) : null;
           const passport = rawPassport ? JSON.parse(rawPassport) : null;
           const docs = rawDocs ? JSON.parse(rawDocs) : null;
@@ -101,8 +102,9 @@
               type: 'PRAYAS_SYNC_USER_SESSION',
               user,
               passport,
-              documents: docs
-            }).catch(() => {});
+              documents: docs,
+              token: rawToken || undefined
+            }).catch(() => { });
           }
         }
       }
@@ -123,18 +125,19 @@
       if (event.data.type === 'PRAYAS_AUTH_SYNC') {
         chrome.runtime.sendMessage({
           type: 'PRAYAS_SYNC_USER_SESSION',
-          user: event.data.user
-        }).catch(() => {});
+          user: event.data.user,
+          token: event.data.token
+        }).catch(() => { });
       } else if (event.data.type === 'PRAYAS_PASSPORT_SYNC') {
         chrome.runtime.sendMessage({
           type: 'PRAYAS_SYNC_USER_SESSION',
           passport: event.data.passport
-        }).catch(() => {});
+        }).catch(() => { });
       } else if (event.data.type === 'PRAYAS_DOCUMENTS_SYNC') {
         chrome.runtime.sendMessage({
           type: 'PRAYAS_SYNC_USER_SESSION',
           documents: event.data.documents
-        }).catch(() => {});
+        }).catch(() => { });
       }
     });
   }
@@ -185,7 +188,7 @@
         if (externalLabel && externalLabel.textContent.trim()) {
           return cleanLabelText(externalLabel.textContent);
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const wrappingLabel = el.closest('label');
@@ -258,7 +261,7 @@
       if (el.id) {
         try {
           externalLabel = document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
-        } catch (e) {}
+        } catch (e) { }
       }
       const wrappingLabel = el.closest('label');
       const placeholder = el.getAttribute('placeholder');
@@ -442,8 +445,15 @@
     return { success: true, revertedCount };
   }
 
+  function isPanelElement(el) {
+    if (!el) return false;
+    const panel = document.getElementById(PANEL_ID);
+    return Boolean(panel && (panel === el || panel.contains(el)));
+  }
+
   function getNavigableElements() {
     return Array.from(document.querySelectorAll(INTERACTIVE_SELECTOR)).filter((el) => {
+      if (isPanelElement(el)) return false;
       const tag = el.tagName.toLowerCase();
       const type = (el.type || '').toLowerCase();
       if (type === 'hidden') return false;
@@ -459,7 +469,7 @@
     el.classList.add('prayas-highlight-field');
     try {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } catch (e) {}
+    } catch (e) { }
   }
 
   function navigateField(direction = 1) {
@@ -507,9 +517,35 @@
     return { success: true, field: meta, announcement };
   }
 
+  const KNOWN_COMMAND_LABELS = new Set([
+    'next field', 'next', 'prev field', 'prev', 'previous field', 'previous',
+    'read q', 'read question', 'read current question', 'read the question',
+    'page info', 'read this page', 'read page',
+    'autofill', 'fill my details', 'fill details',
+    'ai draft', 'draft', 'draft answer',
+    'skip', 'skip field', 'stop', 'stop reading',
+    'alt+n', 'alt+b', 'alt+r', 'alt+w', 'alt+f', 'alt+h', 'alt+m', 'esc', 'escape',
+    'tap & speak', 'voice call'
+  ]);
+
   // Native Value Setter for React, Angular, Vue, and vanilla DOM forms
-  function setNativeValue(el, val) {
-    if (!el) return;
+  function setNativeValue(el, val, source = null) {
+    if (!el || isPanelElement(el)) return false;
+
+    // Guard: reject any text that matches a known command label or shortcut name
+    // when it arrived from a button or ACTION source, or non-answer source
+    if (source === 'ACTION') {
+      console.warn('[PRAYAS Guard] Blocked ACTION insertion into field:', val);
+      return false;
+    }
+    if (typeof val === 'string') {
+      const lower = val.trim().toLowerCase();
+      if (source !== 'UTTERANCE_ANSWER' && source !== 'AUTOFILL' && source !== 'AI_DRAFT' && KNOWN_COMMAND_LABELS.has(lower)) {
+        console.warn('[PRAYAS Guard] Blocked command label from insertion into field:', val);
+        return false;
+      }
+    }
+
     const tag = el.tagName.toLowerCase();
     const type = (el.type || 'text').toLowerCase();
 
@@ -535,8 +571,8 @@
     } else {
       const proto = Object.getPrototypeOf(el);
       const desc = Object.getOwnPropertyDescriptor(proto, 'value') ||
-                   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value') ||
-                   Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value') ||
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
       if (desc && desc.set) {
         desc.set.call(el, val);
       } else {
@@ -547,6 +583,7 @@
     el.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
     el.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
     el.dispatchEvent(new Event('blur', { bubbles: true, cancelable: true }));
+    return true;
   }
 
   // Parses spoken date into YYYY-MM-DD or readable date
@@ -768,7 +805,7 @@
     fieldsToFill.forEach((item) => {
       const el = getElementByPrayasId(item.prayasId);
       if (el && !el.hasAttribute('disabled')) {
-        setNativeValue(el, item.valueToFill);
+        setNativeValue(el, item.valueToFill, 'AUTOFILL');
         el.classList.remove('prayas-needs-input');
         filledIds.add(item.prayasId);
         filledCount++;
@@ -941,7 +978,7 @@
     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
       try {
         return chrome.runtime.getURL('icons/icon128.png');
-      } catch (e) {}
+      } catch (e) { }
     }
     return '/images/prayas-icon.png';
   }
@@ -1235,6 +1272,9 @@
   // 5. ASSISTANT PANEL EVENT WIRING & DISPATCH
   // =========================================================
   function bindAssistantPanelEvents(panel) {
+    if (panel.dataset.prayasEventsBound === 'true') return;
+    panel.dataset.prayasEventsBound = 'true';
+
     const mainView = panel.querySelector('#prayasMainView');
     const callView = panel.querySelector('#prayasCallView');
     const statusMsg = panel.querySelector('#prayasStatusMsg');
@@ -1258,107 +1298,58 @@
     // Populate user email in header strip
     refreshUserSessionDisplay(panel);
 
-    // Close Button
-    btnClose.addEventListener('click', () => {
-      panel.style.display = 'none';
-      stopAllSpeech();
-    });
-
-    // Minimize toggle
-    callMinBtn.addEventListener('click', () => panel.classList.toggle('prayas-minimized'));
-    minIndicator.addEventListener('click', () => panel.classList.remove('prayas-minimized'));
-
-    // Speak Button (Push-to-Talk)
-    btnSpeak.addEventListener('click', () => toggleSpeechRecognition(panel));
-
-    // Stop Button
-    btnStop.addEventListener('click', () => {
-      stopAllSpeech();
-      if (speechRecognizer) try { speechRecognizer.stop(); } catch (e) {}
-      btnSpeak.classList.remove('active-listening');
-      updateReadyPill(panel, 'READY', 'ready');
-      currentMode = 'COMMAND';
-      activeFieldForAnswer = null;
-      statusMsg.textContent = 'Audio stopped by user.';
-    });
-
-    // Shortcut Grid Buttons
-    panel.querySelectorAll('[data-cmd]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const cmd = btn.getAttribute('data-cmd');
-        executeUnifiedCommand(cmd, panel);
+    // Make panel buttons not steal or clear the form's focus state
+    panel.querySelectorAll('button').forEach((btn) => {
+      btn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
       });
     });
 
-    // Type Command / Answer Form
-    cmdForm.addEventListener('submit', () => {
-      const val = cmdInput.value.trim();
+    // Close Button
+    btnClose?.addEventListener('click', () => dispatch({ type: 'ACTION', name: 'CLOSE_PANEL' }));
+
+    // Minimize toggle
+    callMinBtn?.addEventListener('click', () => dispatch({ type: 'ACTION', name: 'MINIMIZE' }));
+    minIndicator?.addEventListener('click', () => panel.classList.remove('prayas-minimized'));
+
+    // Speak Button (Push-to-Talk)
+    btnSpeak?.addEventListener('click', () => dispatch({ type: 'ACTION', name: 'SPEAK_TOGGLE' }));
+
+    // Stop Button
+    btnStop?.addEventListener('click', () => dispatch({ type: 'ACTION', name: 'STOP' }));
+
+    // 3x2 Grid Shortcut Buttons: Execute ACTION directly, never text labels
+    panel.querySelector('#prayasBtnNext')?.addEventListener('click', () => dispatch({ type: 'ACTION', name: 'NEXT_FIELD' }));
+    panel.querySelector('#prayasBtnPrev')?.addEventListener('click', () => dispatch({ type: 'ACTION', name: 'PREV_FIELD' }));
+    panel.querySelector('#prayasBtnReadQ')?.addEventListener('click', () => dispatch({ type: 'ACTION', name: 'READ_QUESTION' }));
+    panel.querySelector('#prayasBtnPage')?.addEventListener('click', () => dispatch({ type: 'ACTION', name: 'PAGE_INFO' }));
+    panel.querySelector('#prayasBtnAutofill')?.addEventListener('click', () => dispatch({ type: 'ACTION', name: 'AUTOFILL' }));
+    panel.querySelector('#prayasBtnDraft')?.addEventListener('click', () => dispatch({ type: 'ACTION', name: 'AI_DRAFT' }));
+
+    // Type Command / Answer Form (Dispatches UTTERANCE)
+    cmdForm?.addEventListener('submit', () => {
+      const val = cmdInput?.value?.trim();
       if (val) {
-        if (currentMode === 'ANSWER') {
-          handleAnswerModeInput(val, panel);
-        } else {
-          executeUnifiedCommand(val, panel);
-        }
-        cmdInput.value = '';
+        dispatch({ type: 'UTTERANCE', text: val, source: 'typed' });
+        if (cmdInput) cmdInput.value = '';
       }
     });
 
     // Start Voice Call Feature
-    btnStartCall.addEventListener('click', () => {
-      mainView.style.display = 'none';
-      callView.style.display = 'flex';
-      startVoiceCall(panel);
-    });
+    btnStartCall?.addEventListener('click', () => dispatch({ type: 'ACTION', name: 'VOICE_CALL' }));
 
     // Voice Call Controls
-    callBackBtn.addEventListener('click', () => {
-      endVoiceCall(panel);
-      callView.style.display = 'none';
-      mainView.style.display = 'flex';
-    });
-
-    callEndBtn.addEventListener('click', () => {
-      endVoiceCall(panel);
-      callView.style.display = 'none';
-      mainView.style.display = 'flex';
-    });
-
-    callSpeakerBtn.addEventListener('click', () => {
-      if (isCallActive && fieldCatalog.length > 0) {
-        announceCallField(fieldCatalog[currentCallFieldIndex], panel);
-      }
-    });
-
-    callMicBtn.addEventListener('click', () => {
-      isCallMuted = !isCallMuted;
-      callMicBtn.classList.toggle('active-mic', !isCallMuted);
-      callMicBtn.textContent = isCallMuted ? '🔇' : '🎤';
-      if (isCallMuted) {
-        if (speechRecognizer) try { speechRecognizer.stop(); } catch (e) {}
-        updateCallStatus(panel, 'MUTED', 'Microphone muted.');
-      } else {
-        listenInVoiceCall(panel);
-      }
-    });
-
-    // Step Nav in Call
-    callPrevBtn.addEventListener('click', () => {
-      if (currentCallFieldIndex > 0) {
-        currentCallFieldIndex--;
-        announceCallField(fieldCatalog[currentCallFieldIndex], panel);
-      }
-    });
-
-    callNextBtn.addEventListener('click', () => {
-      advanceCallField(panel);
-    });
-
-    callSkipBtn.addEventListener('click', () => {
-      skipCurrentCallField(panel);
-    });
+    callBackBtn?.addEventListener('click', () => dispatch({ type: 'ACTION', name: 'END_CALL' }));
+    callEndBtn?.addEventListener('click', () => dispatch({ type: 'ACTION', name: 'END_CALL' }));
+    callSpeakerBtn?.addEventListener('click', () => dispatch({ type: 'ACTION', name: 'READ_QUESTION' }));
+    callMicBtn?.addEventListener('click', () => dispatch({ type: 'ACTION', name: 'CALL_MIC_TOGGLE' }));
+    callPrevBtn?.addEventListener('click', () => dispatch({ type: 'ACTION', name: 'PREV_FIELD' }));
+    callNextBtn?.addEventListener('click', () => dispatch({ type: 'ACTION', name: 'NEXT_FIELD' }));
+    callSkipBtn?.addEventListener('click', () => dispatch({ type: 'ACTION', name: 'SKIP' }));
   }
 
   function updateReadyPill(panel, text, mode) {
+    if (!panel) return;
     const pill = panel.querySelector('#prayasReadyPill');
     const label = panel.querySelector('#prayasReadyText');
     if (!pill || !label) return;
@@ -1367,109 +1358,453 @@
   }
 
   // =========================================================
-  // 6. STATE MACHINE: ANSWER MODE VS. COMMAND MODE
+  // 6. ACTION FUNCTIONS (DIRECT EXECUTION, NEVER PASS LABELS AS TEXT)
   // =========================================================
 
-  // Handles text in ANSWER mode (dictation into field, never returns "Command not recognized")
-  function handleAnswerModeInput(rawText, panel) {
-    const norm = normalizeText(rawText);
-    const statusMsg = panel.querySelector('#prayasStatusMsg');
-    const targetEl = activeFieldForAnswer || document.activeElement;
+  function nextFieldAction(panel) {
+    stopAllSpeech();
+    if (speechRecognizer) {
+      try { speechRecognizer.stop(); } catch (e) { }
+      speechRecognizer = null;
+    }
 
-    if (!targetEl || targetEl.tagName === 'BODY' || targetEl.closest(`#${PANEL_ID}`)) {
-      currentMode = 'COMMAND';
-      executeUnifiedCommand(rawText, panel);
+    if (isCallActive) {
+      advanceCallField(panel);
       return;
     }
 
-    // 1. Strict control keywords check: ONLY interrupt if the ENTIRE utterance equals a control phrase
-    const controlPhrases = ['skip', 'next', 'go back', 'previous', 'repeat', 'stop', 'cancel', 'change that', 'im done', 'i am done', 'help'];
-    if (controlPhrases.includes(norm)) {
-      if (norm === 'skip') {
-        speakAnnouncement('Skipping field.', () => {
-          currentMode = 'COMMAND';
-          executeUnifiedCommand('next field', panel);
-        });
-        return;
-      }
-      if (norm === 'next') {
-        currentMode = 'COMMAND';
-        executeUnifiedCommand('next field', panel);
-        return;
-      }
-      if (norm === 'go back' || norm === 'previous') {
-        currentMode = 'COMMAND';
-        executeUnifiedCommand('previous field', panel);
-        return;
-      }
-      if (norm === 'repeat') {
-        const meta = processFieldElement(targetEl);
-        speakAnnouncement(`Field is ${meta.label}. What should I enter?`, () => {
-          startListeningForAnswer(panel, targetEl);
-        });
-        return;
-      }
-      if (norm === 'stop' || norm === 'cancel') {
-        stopAllSpeech();
-        currentMode = 'COMMAND';
-        activeFieldForAnswer = null;
-        statusMsg.textContent = 'Dictation cancelled. Switched to Command mode.';
-        return;
-      }
-      if (norm === 'im done' || norm === 'i am done') {
-        stopAllSpeech();
-        currentMode = 'COMMAND';
-        activeFieldForAnswer = null;
-        speakAnnouncement('Finished filling. You can review the form and submit whenever ready.');
-        return;
-      }
-      if (norm === 'help') {
-        speakAnnouncement('You are currently dictating an answer. Say your answer clearly, or say skip, next, repeat, or stop.');
-        return;
-      }
-    }
+    const res = navigateField(1);
+    const statusMsg = panel?.querySelector('#prayasStatusMsg');
 
-    // 2. Confirmation check: If awaiting confirmation on previous entry
-    if (awaitingConfirmation) {
-      if (['yes', 'yeah', 'yep', 'correct', 'right', 'looks good', 'sounds good', 'confirm'].includes(norm)) {
+    if (res && res.field) {
+      const el = getElementByPrayasId(res.field.prayasId);
+      if (el) {
+        el.focus();
+        highlightElement(el);
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        currentMode = 'ANSWER';
+        activeFieldForAnswer = el;
         awaitingConfirmation = false;
         pendingFieldValue = null;
-        statusMsg.textContent = '✓ Answer confirmed.';
-        speakAnnouncement('Great! Moving to next field.', () => {
-          currentMode = 'COMMAND';
-          executeUnifiedCommand('next field', panel);
-        });
-        return;
-      } else if (['no', 'change', 'change that', 'wrong', 'edit', 'incorrect'].includes(norm)) {
-        awaitingConfirmation = false;
-        statusMsg.textContent = 'What should I enter instead?';
-        speakAnnouncement('What should I enter instead?', () => {
-          startListeningForAnswer(panel, targetEl);
+        const questionPrompt = `The next field is ${res.field.label}. What should I enter?`;
+        if (statusMsg) statusMsg.textContent = `On: ${res.field.label}. Listening for your answer...`;
+        speakAnnouncement(questionPrompt, () => {
+          startListeningForAnswer(panel, el);
         });
         return;
       }
     }
+    if (statusMsg) statusMsg.textContent = res.announcement || 'Moved to next field.';
+  }
 
-    // 3. User dictated an answer value!
-    const cleanedVal = cleanAnswerByFieldType(targetEl, rawText);
-    setNativeValue(targetEl, cleanedVal);
-    targetEl.classList.remove('prayas-needs-input');
+  function prevFieldAction(panel) {
+    stopAllSpeech();
+    if (speechRecognizer) {
+      try { speechRecognizer.stop(); } catch (e) { }
+      speechRecognizer = null;
+    }
 
-    awaitingConfirmation = true;
-    pendingFieldValue = cleanedVal;
-    const confirmMsg = `I've entered ${cleanedVal}. Is that right?`;
-    statusMsg.textContent = confirmMsg;
-    speakAnnouncement(confirmMsg, () => {
-      startListeningForAnswer(panel, targetEl);
+    if (isCallActive) {
+      if (currentCallFieldIndex > 0) {
+        currentCallFieldIndex--;
+        updateCallStatus(panel, 'SPEAKING', 'Prayas.AI: "Moving back to previous field."');
+        speakAnnouncement('Moving back.', () => announceCallField(fieldCatalog[currentCallFieldIndex], panel));
+      } else {
+        speakAnnouncement('This is the first field.', () => announceCallField(fieldCatalog[0], panel));
+      }
+      return;
+    }
+
+    const res = navigateField(-1);
+    const statusMsg = panel?.querySelector('#prayasStatusMsg');
+
+    if (res && res.field) {
+      const el = getElementByPrayasId(res.field.prayasId);
+      if (el) {
+        el.focus();
+        highlightElement(el);
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        currentMode = 'ANSWER';
+        activeFieldForAnswer = el;
+        awaitingConfirmation = false;
+        pendingFieldValue = null;
+        const questionPrompt = `Previous field is ${res.field.label}. What should I enter?`;
+        if (statusMsg) statusMsg.textContent = `On: ${res.field.label}. Listening for your answer...`;
+        speakAnnouncement(questionPrompt, () => {
+          startListeningForAnswer(panel, el);
+        });
+        return;
+      }
+    }
+    if (statusMsg) statusMsg.textContent = res.announcement || 'Moved to previous field.';
+  }
+
+  function readQuestionAction(panel) {
+    stopAllSpeech();
+    if (speechRecognizer) {
+      try { speechRecognizer.stop(); } catch (e) { }
+      speechRecognizer = null;
+    }
+
+    if (isCallActive && fieldCatalog.length > 0) {
+      announceCallField(fieldCatalog[currentCallFieldIndex], panel);
+      return;
+    }
+
+    const res = readCurrentField();
+    const statusMsg = panel?.querySelector('#prayasStatusMsg');
+    if (statusMsg) statusMsg.textContent = res.announcement || 'Read current question.';
+  }
+
+  function pageInfoAction(panel) {
+    stopAllSpeech();
+    if (speechRecognizer) {
+      try { speechRecognizer.stop(); } catch (e) { }
+      speechRecognizer = null;
+    }
+
+    const scan = runFullScanAndAudit();
+    const pageText = `${document.title || 'This page'} contains ${scan.fieldsCount} interactive fields. ${scan.activeRepairsCount} accessibility repairs active.`;
+    speakAnnouncement(pageText);
+    const statusMsg = panel?.querySelector('#prayasStatusMsg');
+    if (statusMsg) statusMsg.textContent = pageText;
+  }
+
+  function autofillAction(panel) {
+    stopAllSpeech();
+    if (speechRecognizer) {
+      try { speechRecognizer.stop(); } catch (e) { }
+      speechRecognizer = null;
+    }
+
+    const statusMsg = panel?.querySelector('#prayasStatusMsg');
+    chrome.storage.local.get(['prayasLoggedInUser', 'passportProfile'], (data) => {
+      const user = data.prayasLoggedInUser;
+      const profile = data.passportProfile;
+
+      if (!user) {
+        if (statusMsg) {
+          statusMsg.innerHTML = '⚠️ Not logged in. <a href="http://localhost:3000/auth/login" target="_blank" class="prayas-login-link">Log in at PRAYAS</a> to use your profile & documents.';
+        }
+        speakAnnouncement('You are not logged in. Please log in to your PRAYAS dashboard to enable personalized autofill.');
+        return;
+      }
+
+      if (!profile) {
+        if (statusMsg) statusMsg.textContent = 'No Accessibility Passport found. Configure in PRAYAS dashboard.';
+        speakAnnouncement('No Accessibility Passport found.');
+        return;
+      }
+
+      const matches = previewAutofillMatches(profile);
+      const fieldsToFill = matches.map((m) => ({ prayasId: m.prayasId, valueToFill: m.valueToFill }));
+      const res = executeConfirmedAutofill(fieldsToFill);
+
+      let reportMsg = `✓ Filled ${res.filledCount} fields from your profile.`;
+      if (res.unfilledFields && res.unfilledFields.length > 0) {
+        const neededLabels = res.unfilledFields.map((f) => f.label).slice(0, 3).join(', ');
+        reportMsg += ` ${res.unfilledFields.length} need your input: ${neededLabels}.`;
+        speakAnnouncement(`Filled ${res.filledCount} fields. ${res.unfilledFields.length} need your input: ${neededLabels}.`);
+      } else {
+        speakAnnouncement(`Filled ${res.filledCount} fields successfully from your verified profile.`);
+      }
+      if (statusMsg) statusMsg.textContent = reportMsg;
     });
+  }
+
+  function aiDraftAction(panel) {
+    stopAllSpeech();
+    if (speechRecognizer) {
+      try { speechRecognizer.stop(); } catch (e) { }
+      speechRecognizer = null;
+    }
+
+    const statusMsg = panel?.querySelector('#prayasStatusMsg');
+    if (statusMsg) statusMsg.textContent = '🤖 Asking Gemini RAG to draft response...';
+    speakAnnouncement('Querying your uploaded career documents to draft a personalized answer.');
+
+    let targetEl = activeFieldForAnswer;
+    if (!targetEl || isPanelElement(targetEl)) {
+      const els = getNavigableElements();
+      targetEl = els.find((e) => e.tagName.toLowerCase() === 'textarea') || els[currentNavIndex >= 0 ? currentNavIndex : 0];
+    }
+
+    const label = targetEl ? extractAccessibleLabel(targetEl) : 'Application essay prompt';
+
+    chrome.storage.local.get(['prayasLoggedInUser', 'passportProfile'], (userData) => {
+      chrome.runtime.sendMessage({
+        type: 'PRAYAS_REQUEST_RAG',
+        payload: {
+          question: label,
+          context: 'Candidate application response',
+          user_id: userData.prayasLoggedInUser?.id,
+          user_email: userData.prayasLoggedInUser?.email,
+          user_profile: userData.passportProfile
+        }
+      }, (res) => {
+        if (res && res.success && res.draftAnswer) {
+          if (targetEl) {
+            targetEl.focus();
+            setNativeValue(targetEl, res.draftAnswer, 'AI_DRAFT');
+            targetEl.classList.remove('prayas-needs-input');
+            if (statusMsg) statusMsg.textContent = '✓ AI Draft inserted into active field.';
+            speakAnnouncement('Personalized draft inserted based on your uploaded resume.');
+          }
+        } else {
+          const fallbackDraft = 'Drawing from my software engineering background, I design accessible UI architectures with keyboard navigation and strict WCAG compliance to empower all users.';
+          if (targetEl) {
+            targetEl.focus();
+            setNativeValue(targetEl, fallbackDraft, 'AI_DRAFT');
+            targetEl.classList.remove('prayas-needs-input');
+            if (statusMsg) statusMsg.textContent = '✓ Grounded draft answer inserted.';
+            speakAnnouncement('Draft answer inserted into field.');
+          }
+        }
+      });
+    });
+  }
+
+  function skipAction(panel) {
+    stopAllSpeech();
+    if (speechRecognizer) {
+      try { speechRecognizer.stop(); } catch (e) { }
+      speechRecognizer = null;
+    }
+
+    if (isCallActive) {
+      skipCurrentCallField(panel);
+      return;
+    }
+
+    speakAnnouncement('Skipping field.', () => {
+      nextFieldAction(panel);
+    });
+  }
+
+  function stopAction(panel) {
+    stopAllSpeech();
+    if (speechRecognizer) {
+      try { speechRecognizer.stop(); } catch (e) { }
+      speechRecognizer = null;
+    }
+    panel?.querySelector('#prayasBtnSpeak')?.classList.remove('active-listening');
+    updateReadyPill(panel, 'READY', 'ready');
+    currentMode = 'COMMAND';
+    activeFieldForAnswer = null;
+    awaitingConfirmation = false;
+    pendingFieldValue = null;
+    const statusMsg = panel?.querySelector('#prayasStatusMsg');
+    if (statusMsg) statusMsg.textContent = 'Audio stopped by user.';
+  }
+
+  function voiceCallAction(panel) {
+    const mainView = panel?.querySelector('#prayasMainView');
+    const callView = panel?.querySelector('#prayasCallView');
+    if (mainView && callView) {
+      mainView.style.display = 'none';
+      callView.style.display = 'flex';
+      startVoiceCall(panel);
+    }
+  }
+
+  function helpAction(panel) {
+    const helpText = 'You can say: Read Question, Next Field, Previous Field, Autofill, AI Draft, Page Info, or Start Voice Call.';
+    const statusMsg = panel?.querySelector('#prayasStatusMsg');
+    if (statusMsg) statusMsg.textContent = helpText;
+    speakAnnouncement(helpText);
+  }
+
+  // =========================================================
+  // 7. CENTRAL DISPATCHER (EXPLICIT ACTION VS. UTTERANCE CHANNELS)
+  // =========================================================
+
+  function dispatch(event) {
+    if (!event || !event.type) return;
+    const panel = document.getElementById(PANEL_ID) || createPrayasAssistantPanel();
+
+    // CHANNEL 1: ACTION (buttons, shortcuts, programmatic commands)
+    // Directly executes the action. NEVER touches the answer-insertion pipeline.
+    if (event.type === 'ACTION') {
+      const actionName = (event.name || '').toUpperCase();
+      console.log(`[PRAYAS Dispatch] Executing ACTION: ${actionName}`);
+
+      switch (actionName) {
+        case 'NEXT_FIELD':
+          nextFieldAction(panel);
+          break;
+        case 'PREV_FIELD':
+        case 'PREVIOUS_FIELD':
+          prevFieldAction(panel);
+          break;
+        case 'READ_QUESTION':
+        case 'READ_CURRENT_FIELD':
+          readQuestionAction(panel);
+          break;
+        case 'PAGE_INFO':
+        case 'READ_PAGE':
+          pageInfoAction(panel);
+          break;
+        case 'AUTOFILL':
+        case 'FILL_DETAILS':
+        case 'START_AUTOFILL':
+          autofillAction(panel);
+          break;
+        case 'AI_DRAFT':
+          aiDraftAction(panel);
+          break;
+        case 'SKIP':
+        case 'SKIP_FIELD':
+          skipAction(panel);
+          break;
+        case 'STOP':
+        case 'STOP_READING':
+          stopAction(panel);
+          break;
+        case 'VOICE_CALL':
+          voiceCallAction(panel);
+          break;
+        case 'HELP':
+          helpAction(panel);
+          break;
+        case 'SPEAK_TOGGLE':
+          toggleSpeechRecognition(panel);
+          break;
+        case 'END_CALL':
+          endVoiceCall(panel);
+          panel.querySelector('#prayasCallView').style.display = 'none';
+          panel.querySelector('#prayasMainView').style.display = 'flex';
+          break;
+        case 'CALL_MIC_TOGGLE': {
+          const callMicBtn = panel.querySelector('#prayasCallMicBtn');
+          isCallMuted = !isCallMuted;
+          if (callMicBtn) {
+            callMicBtn.classList.toggle('active-mic', !isCallMuted);
+            callMicBtn.textContent = isCallMuted ? '🔇' : '🎤';
+          }
+          if (isCallMuted) {
+            if (speechRecognizer) try { speechRecognizer.stop(); } catch (e) { }
+            updateCallStatus(panel, 'MUTED', 'Microphone muted.');
+          } else {
+            listenInVoiceCall(panel);
+          }
+          break;
+        }
+        case 'CLOSE_PANEL':
+          panel.style.display = 'none';
+          stopAllSpeech();
+          break;
+        case 'MINIMIZE':
+          panel.classList.toggle('prayas-minimized');
+          break;
+        default:
+          console.warn(`[PRAYAS Dispatch] Unknown action: ${actionName}`);
+      }
+      return;
+    }
+
+    // CHANNEL 2: UTTERANCE (speech recognition, Type command box)
+    if (event.type === 'UTTERANCE') {
+      const rawText = (event.text || '').trim();
+      const source = event.source || 'voice'; // 'voice' | 'typed'
+      if (!rawText) return;
+
+      console.log(`[PRAYAS Dispatch] Processing UTTERANCE: "${rawText}" from source: ${source} (Mode: ${currentMode})`);
+
+      // In ANY mode, if the whole utterance matches a control phrase via fuzzy NLP intent engine:
+      const match = classifyUserIntent(rawText);
+      if (match && match.intent && match.intent !== 'UNKNOWN') {
+        const intentToActionMap = {
+          'NEXT_FIELD': 'NEXT_FIELD',
+          'PREV_FIELD': 'PREV_FIELD',
+          'READ_QUESTION': 'READ_QUESTION',
+          'FILL_DETAILS': 'AUTOFILL',
+          'AI_DRAFT': 'AI_DRAFT',
+          'READ_PAGE': 'PAGE_INFO',
+          'STOP_READING': 'STOP',
+          'HELP': 'HELP',
+          'VOICE_CALL': 'VOICE_CALL',
+          'SKIP': 'SKIP'
+        };
+
+        const mappedAction = intentToActionMap[match.intent];
+        if (mappedAction) {
+          dispatch({ type: 'ACTION', name: mappedAction });
+          return;
+        }
+      }
+
+      // Confirmation handling in ANSWER mode
+      if (currentMode === 'ANSWER' && awaitingConfirmation) {
+        const norm = normalizeText(rawText);
+        if (['yes', 'yeah', 'yep', 'correct', 'right', 'looks good', 'sounds good', 'confirm'].includes(norm)) {
+          awaitingConfirmation = false;
+          pendingFieldValue = null;
+          const statusMsg = panel.querySelector('#prayasStatusMsg');
+          if (statusMsg) statusMsg.textContent = '✓ Answer confirmed.';
+          speakAnnouncement('Great! Moving to next field.', () => {
+            dispatch({ type: 'ACTION', name: 'NEXT_FIELD' });
+          });
+          return;
+        } else if (['no', 'change', 'change that', 'wrong', 'edit', 'incorrect', 'change my answer'].includes(norm)) {
+          awaitingConfirmation = false;
+          const statusMsg = panel.querySelector('#prayasStatusMsg');
+          if (statusMsg) statusMsg.textContent = 'What should I enter instead?';
+          speakAnnouncement('What should I enter instead?', () => {
+            if (activeFieldForAnswer) startListeningForAnswer(panel, activeFieldForAnswer);
+          });
+          return;
+        }
+      }
+
+      // ONLY UTTERANCE events can be inserted into a field, and ONLY when mode is ANSWER
+      // and a genuine form field is actively awaiting an answer
+      if (currentMode === 'ANSWER' && activeFieldForAnswer && !isPanelElement(activeFieldForAnswer)) {
+        const targetEl = activeFieldForAnswer;
+        const cleanedVal = cleanAnswerByFieldType(targetEl, rawText);
+        const inserted = setNativeValue(targetEl, cleanedVal, 'UTTERANCE_ANSWER');
+        if (inserted !== false) {
+          targetEl.classList.remove('prayas-needs-input');
+          awaitingConfirmation = true;
+          pendingFieldValue = cleanedVal;
+          const confirmMsg = `I've entered ${cleanedVal}. Is that right?`;
+          const statusMsg = panel.querySelector('#prayasStatusMsg');
+          if (statusMsg) statusMsg.textContent = confirmMsg;
+          speakAnnouncement(confirmMsg, () => {
+            startListeningForAnswer(panel, targetEl);
+          });
+        }
+        return;
+      }
+
+      // Utterance in COMMAND mode not matching any command
+      const statusMsg = panel.querySelector('#prayasStatusMsg');
+      if (match.needsClarification) {
+        const clarify = match.clarification || 'Did you want me to read the question?';
+        if (statusMsg) statusMsg.textContent = clarify;
+        speakAnnouncement(clarify);
+      } else {
+        const unknownMsg = `Command "${rawText}" not recognized. Say "help" for options.`;
+        if (statusMsg) statusMsg.textContent = unknownMsg;
+        speakAnnouncement('Command not recognized. You can say: Read question, Next field, Autofill, or Help.');
+      }
+    }
+  }
+
+  // Backward-compatible wrappers for external scripts or unit tests
+  async function executeUnifiedCommand(text, panel) {
+    dispatch({ type: 'UTTERANCE', text, source: 'typed' });
+  }
+
+  function handleAnswerModeInput(rawText, panel) {
+    dispatch({ type: 'UTTERANCE', text: rawText, source: 'voice' });
   }
 
   // Opens listening state specifically for dictating an answer to targetEl
   function startListeningForAnswer(panel, targetEl) {
     const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const btnSpeak = panel.querySelector('#prayasBtnSpeak');
-    const statusMsg = panel.querySelector('#prayasStatusMsg');
-    const cmdInput = panel.querySelector('#prayasCommandInput');
+    const btnSpeak = panel?.querySelector('#prayasBtnSpeak');
+    const statusMsg = panel?.querySelector('#prayasStatusMsg');
+    const cmdInput = panel?.querySelector('#prayasCommandInput');
 
     if (cmdInput) {
       cmdInput.placeholder = 'Type your answer (or type a command)...';
@@ -1477,7 +1812,7 @@
 
     if (!SpeechRec) return;
     if (speechRecognizer) {
-      try { speechRecognizer.stop(); } catch (e) {}
+      try { speechRecognizer.stop(); } catch (e) { }
     }
 
     try {
@@ -1489,14 +1824,14 @@
       rec.onstart = () => {
         btnSpeak?.classList.add('active-listening');
         updateReadyPill(panel, 'ANSWERING', 'listening');
-        statusMsg.textContent = 'Listening for your answer...';
+        if (statusMsg) statusMsg.textContent = 'Listening for your answer...';
       };
 
       rec.onresult = (evt) => {
         const transcript = Array.from(evt.results).map((r) => r[0].transcript).join('');
-        statusMsg.textContent = `Hearing answer: "${transcript}"`;
+        if (statusMsg) statusMsg.textContent = `Hearing answer: "${transcript}"`;
         if (evt.results[0].isFinal) {
-          handleAnswerModeInput(transcript.trim(), panel);
+          dispatch({ type: 'UTTERANCE', text: transcript.trim(), source: 'voice' });
         }
       };
 
@@ -1518,208 +1853,22 @@
     }
   }
 
-  // =========================================================
-  // 7. UNIFIED COMMAND EXECUTION & NLP ROUTER
-  // =========================================================
-  async function executeUnifiedCommand(text, panel) {
-    const statusMsg = panel.querySelector('#prayasStatusMsg');
-    const cmdInput = panel.querySelector('#prayasCommandInput');
-    if (cmdInput) cmdInput.placeholder = 'Type command (e.g. next, autofill, draft)...';
-
-    // If currently in ANSWER mode, divert directly to answer mode handler
-    if (currentMode === 'ANSWER' && activeFieldForAnswer) {
-      handleAnswerModeInput(text, panel);
-      return;
-    }
-
-    const match = classifyUserIntent(text);
-    console.log(`[PRAYAS NLP] Spoken/Typed: "${text}" -> Intent: ${match.intent}`);
-
-    switch (match.intent) {
-      case 'NEXT_FIELD': {
-        const res = navigateField(1);
-        if (res && res.field) {
-          const el = getElementByPrayasId(res.field.prayasId);
-          if (el) {
-            el.focus();
-            highlightElement(el);
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            currentMode = 'ANSWER';
-            activeFieldForAnswer = el;
-            awaitingConfirmation = false;
-            pendingFieldValue = null;
-            const questionPrompt = `The next field is ${res.field.label}. What should I enter?`;
-            statusMsg.textContent = `On: ${res.field.label}. Listening for your answer...`;
-            speakAnnouncement(questionPrompt, () => {
-              startListeningForAnswer(panel, el);
-            });
-            break;
-          }
-        }
-        statusMsg.textContent = res.announcement || 'Moved to next field.';
-        break;
-      }
-      case 'PREV_FIELD': {
-        const res = navigateField(-1);
-        if (res && res.field) {
-          const el = getElementByPrayasId(res.field.prayasId);
-          if (el) {
-            el.focus();
-            highlightElement(el);
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            currentMode = 'ANSWER';
-            activeFieldForAnswer = el;
-            awaitingConfirmation = false;
-            pendingFieldValue = null;
-            speakAnnouncement(`Previous field is ${res.field.label}. What should I enter?`, () => {
-              startListeningForAnswer(panel, el);
-            });
-            break;
-          }
-        }
-        statusMsg.textContent = res.announcement || 'Moved to previous field.';
-        break;
-      }
-      case 'READ_QUESTION': {
-        const res = readCurrentField();
-        statusMsg.textContent = res.announcement || 'Read current question.';
-        break;
-      }
-      case 'READ_PAGE': {
-        const scan = runFullScanAndAudit();
-        const pageText = `${document.title || 'This page'} contains ${scan.fieldsCount} interactive fields. ${scan.activeRepairsCount} accessibility repairs active.`;
-        speakAnnouncement(pageText);
-        statusMsg.textContent = pageText;
-        break;
-      }
-      case 'FILL_DETAILS': {
-        chrome.storage.local.get(['prayasLoggedInUser', 'passportProfile'], (data) => {
-          const user = data.prayasLoggedInUser;
-          const profile = data.passportProfile;
-
-          if (!user) {
-            statusMsg.innerHTML = '⚠️ Not logged in. <a href="http://localhost:3000/auth/login" target="_blank" class="prayas-login-link">Log in at PRAYAS</a> to use your profile & documents.';
-            speakAnnouncement('You are not logged in. Please log in to your PRAYAS dashboard to enable personalized autofill.');
-            return;
-          }
-
-          if (!profile) {
-            statusMsg.textContent = 'No Accessibility Passport found. Configure in PRAYAS dashboard.';
-            speakAnnouncement('No Accessibility Passport found.');
-            return;
-          }
-
-          const matches = previewAutofillMatches(profile);
-          const fieldsToFill = matches.map((m) => ({ prayasId: m.prayasId, valueToFill: m.valueToFill }));
-          const res = executeConfirmedAutofill(fieldsToFill);
-
-          let reportMsg = `✓ Filled ${res.filledCount} fields from your profile.`;
-          if (res.unfilledFields && res.unfilledFields.length > 0) {
-            const neededLabels = res.unfilledFields.map((f) => f.label).slice(0, 3).join(', ');
-            reportMsg += ` ${res.unfilledFields.length} need your input: ${neededLabels}.`;
-            speakAnnouncement(`Filled ${res.filledCount} fields. ${res.unfilledFields.length} need your input: ${neededLabels}.`);
-          } else {
-            speakAnnouncement(`Filled ${res.filledCount} fields successfully from your verified profile.`);
-          }
-          statusMsg.textContent = reportMsg;
-        });
-        break;
-      }
-      case 'AI_DRAFT': {
-        statusMsg.textContent = '🤖 Asking Gemini RAG to draft response...';
-        speakAnnouncement('Querying your uploaded career documents to draft a personalized answer.');
-
-        let targetEl = document.activeElement;
-        if (!targetEl || targetEl.tagName === 'BODY' || targetEl.closest(`#${PANEL_ID}`)) {
-          const els = getNavigableElements();
-          targetEl = els.find((e) => e.tagName.toLowerCase() === 'textarea') || els[0];
-        }
-
-        const label = targetEl ? extractAccessibleLabel(targetEl) : 'Application essay prompt';
-
-        chrome.storage.local.get(['prayasLoggedInUser', 'passportProfile'], (userData) => {
-          chrome.runtime.sendMessage({
-            type: 'PRAYAS_REQUEST_RAG',
-            payload: {
-              question: label,
-              context: 'Candidate application response',
-              user_id: userData.prayasLoggedInUser?.id,
-              user_email: userData.prayasLoggedInUser?.email,
-              user_profile: userData.passportProfile
-            }
-          }, (res) => {
-            if (res && res.success && res.draftAnswer) {
-              if (targetEl) {
-                targetEl.focus();
-                setNativeValue(targetEl, res.draftAnswer);
-                targetEl.classList.remove('prayas-needs-input');
-                statusMsg.textContent = '✓ AI Draft inserted into active field.';
-                speakAnnouncement('Personalized draft inserted based on your uploaded resume.');
-              }
-            } else {
-              const fallbackDraft = 'Drawing from my software engineering background, I design accessible UI architectures with keyboard navigation and strict WCAG compliance to empower all users.';
-              if (targetEl) {
-                targetEl.focus();
-                setNativeValue(targetEl, fallbackDraft);
-                targetEl.classList.remove('prayas-needs-input');
-                statusMsg.textContent = '✓ Grounded draft answer inserted.';
-                speakAnnouncement('Draft answer inserted into field.');
-              }
-            }
-          });
-        });
-        break;
-      }
-      case 'VOICE_CALL': {
-        const mainView = panel.querySelector('#prayasMainView');
-        const callView = panel.querySelector('#prayasCallView');
-        mainView.style.display = 'none';
-        callView.style.display = 'flex';
-        startVoiceCall(panel);
-        break;
-      }
-      case 'HELP': {
-        const helpText = 'You can say: Read Question, Next Field, Previous Field, Autofill, AI Draft, Page Info, or Start Voice Call.';
-        statusMsg.textContent = helpText;
-        speakAnnouncement(helpText);
-        break;
-      }
-      case 'STOP_READING': {
-        stopAllSpeech();
-        currentMode = 'COMMAND';
-        activeFieldForAnswer = null;
-        statusMsg.textContent = 'Speech stopped.';
-        break;
-      }
-      default: {
-        if (match.needsClarification) {
-          const clarify = match.clarification || 'Did you want me to read the question?';
-          statusMsg.textContent = clarify;
-          speakAnnouncement(clarify);
-        } else {
-          statusMsg.textContent = `Command "${text}" not recognized. Say "help" for options.`;
-          speakAnnouncement('Command not recognized. You can say: Read question, Next field, Autofill, or Help.');
-        }
-      }
-    }
-  }
-
   // Single-Shot Tap & Speak Recognition
   function toggleSpeechRecognition(panel) {
     const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const btnSpeak = panel.querySelector('#prayasBtnSpeak');
-    const statusMsg = panel.querySelector('#prayasStatusMsg');
+    const btnSpeak = panel?.querySelector('#prayasBtnSpeak');
+    const statusMsg = panel?.querySelector('#prayasStatusMsg');
 
     if (!SpeechRec) {
-      statusMsg.textContent = 'Speech recognition requires Chrome or Edge.';
+      if (statusMsg) statusMsg.textContent = 'Speech recognition requires Chrome or Edge.';
       speakAnnouncement('Speech recognition is not supported in this browser.');
       return;
     }
 
     if (speechRecognizer) {
-      try { speechRecognizer.stop(); } catch (e) {}
+      try { speechRecognizer.stop(); } catch (e) { }
       speechRecognizer = null;
-      btnSpeak.classList.remove('active-listening');
+      btnSpeak?.classList.remove('active-listening');
       updateReadyPill(panel, 'READY', 'ready');
       return;
     }
@@ -1731,34 +1880,32 @@
       rec.interimResults = true;
 
       rec.onstart = () => {
-        btnSpeak.classList.add('active-listening');
+        btnSpeak?.classList.add('active-listening');
         updateReadyPill(panel, 'LISTENING', 'listening');
-        statusMsg.textContent = 'Listening... Speak your command or answer now.';
+        if (statusMsg) statusMsg.textContent = 'Listening... Speak your command or answer now.';
       };
 
       rec.onresult = (evt) => {
         const transcript = Array.from(evt.results).map((r) => r[0].transcript).join('');
-        statusMsg.textContent = `Hearing: "${transcript}"`;
+        if (statusMsg) statusMsg.textContent = `Hearing: "${transcript}"`;
         if (evt.results[0].isFinal) {
-          if (currentMode === 'ANSWER') {
-            handleAnswerModeInput(transcript.trim(), panel);
-          } else {
-            executeUnifiedCommand(transcript.trim(), panel);
-          }
+          dispatch({ type: 'UTTERANCE', text: transcript.trim(), source: 'voice' });
         }
       };
 
       rec.onerror = (err) => {
         console.warn('[PRAYAS Speech Error]', err.error);
-        btnSpeak.classList.remove('active-listening');
+        btnSpeak?.classList.remove('active-listening');
         updateReadyPill(panel, 'READY', 'ready');
-        statusMsg.textContent = err.error === 'not-allowed'
-          ? 'Microphone permission denied in browser.'
-          : 'Could not detect speech. Please try again.';
+        if (statusMsg) {
+          statusMsg.textContent = err.error === 'not-allowed'
+            ? 'Microphone permission denied in browser.'
+            : 'Could not detect speech. Please try again.';
+        }
       };
 
       rec.onend = () => {
-        btnSpeak.classList.remove('active-listening');
+        btnSpeak?.classList.remove('active-listening');
         updateReadyPill(panel, 'READY', 'ready');
         speechRecognizer = null;
       };
@@ -1766,7 +1913,7 @@
       speechRecognizer = rec;
       rec.start();
     } catch (e) {
-      statusMsg.textContent = 'Could not start mic: ' + e.message;
+      if (statusMsg) statusMsg.textContent = 'Could not start mic: ' + e.message;
     }
   }
 
@@ -1832,7 +1979,7 @@
     clearInterval(callTimerInterval);
     stopAllSpeech();
     if (speechRecognizer) {
-      try { speechRecognizer.stop(); } catch (e) {}
+      try { speechRecognizer.stop(); } catch (e) { }
       speechRecognizer = null;
     }
     document.querySelectorAll('.prayas-highlight-field, .prayas-call-speaking-glow').forEach((node) => {
@@ -1891,7 +2038,7 @@
     }
 
     if (speechRecognizer) {
-      try { speechRecognizer.stop(); } catch (e) {}
+      try { speechRecognizer.stop(); } catch (e) { }
     }
 
     try {
@@ -2036,7 +2183,7 @@
               ? res.draftAnswer
               : 'Drawing from my verified software engineering experience, I specialize in building accessible web platforms with full keyboard navigation and strict WCAG compliance.';
 
-            setNativeValue(currentField, draftVal);
+            setNativeValue(currentField, draftVal, 'AI_DRAFT');
             currentField.classList.remove('prayas-needs-input');
             awaitingConfirmation = true;
             pendingFieldValue = draftVal;
@@ -2051,7 +2198,7 @@
 
     // Candidate provided an answer value (cleaned by field type)
     const cleaned = cleanAnswerByFieldType(currentField, spokenText);
-    setNativeValue(currentField, cleaned);
+    setNativeValue(currentField, cleaned, 'UTTERANCE_ANSWER');
     currentField.classList.remove('prayas-needs-input');
     awaitingConfirmation = true;
     pendingFieldValue = cleaned;
@@ -2080,34 +2227,37 @@
     }
   }
 
-  // Document-level focusin listener for mouse-click field sync (Task C)
-  document.addEventListener('focusin', (e) => {
-    const target = e.target;
-    if (!target || !target.tagName || target.closest(`#${PANEL_ID}`)) return;
+  // Document-level focusin listener for mouse-click field sync (Task C) - guarded against duplicate registration
+  if (!window.__prayasFocusinListenerBound) {
+    window.__prayasFocusinListenerBound = true;
+    document.addEventListener('focusin', (e) => {
+      const target = e.target;
+      if (!target || !target.tagName || isPanelElement(target)) return;
 
-    if (fieldCatalog.length === 0) initFieldCatalog();
-    const idx = fieldCatalog.findIndex((item) => item.el === target);
+      if (fieldCatalog.length === 0) initFieldCatalog();
+      const idx = fieldCatalog.findIndex((item) => item.el === target);
 
-    if (idx !== -1 && idx !== currentCallFieldIndex) {
-      currentCallFieldIndex = idx;
-      const fieldObj = fieldCatalog[idx];
-      highlightElement(fieldObj.el);
-      activeFieldForAnswer = fieldObj.el;
+      if (idx !== -1 && idx !== currentCallFieldIndex) {
+        currentCallFieldIndex = idx;
+        const fieldObj = fieldCatalog[idx];
+        highlightElement(fieldObj.el);
+        activeFieldForAnswer = fieldObj.el;
 
-      const panel = document.getElementById(PANEL_ID);
-      if (panel) updateCallProgressDisplay(panel);
+        const panel = document.getElementById(PANEL_ID);
+        if (panel) updateCallProgressDisplay(panel);
 
-      if (isCallActive) {
-        const prompt = `I see you're on ${fieldObj.label}. Want to answer it by voice?`;
-        updateCallStatus(panel, 'SPEAKING', `Prayas.AI: "${prompt}"`);
-        speakAnnouncement(prompt, () => {
-          if (isCallActive) {
-            announceCallField(fieldObj, panel);
-          }
-        });
+        if (isCallActive) {
+          const prompt = `I see you're on ${fieldObj.label}. Want to answer it by voice?`;
+          updateCallStatus(panel, 'SPEAKING', `Prayas.AI: "${prompt}"`);
+          speakAnnouncement(prompt, () => {
+            if (isCallActive) {
+              announceCallField(fieldObj, panel);
+            }
+          });
+        }
       }
-    }
-  });
+    });
+  }
 
   // =========================================================
   // 8. GLOBAL TOGGLE & KEYBOARD SHORTCUT DISPATCHER
@@ -2126,51 +2276,67 @@
     }
   }
 
-  // Keyboard shortcut listeners (Alt+M, Alt+N, Alt+B, Alt+R, Alt+W, Alt+F, Alt+H, Esc)
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      stopAllSpeech();
-      if (speechRecognizer) try { speechRecognizer.stop(); } catch (err) {}
-      const panel = document.getElementById(PANEL_ID);
-      if (panel) {
-        panel.querySelector('#prayasBtnSpeak')?.classList.remove('active-listening');
-        updateReadyPill(panel, 'READY', 'ready');
+  // Keyboard shortcut listeners (Alt+M, Alt+N, Alt+B, Alt+R, Alt+W, Alt+F, Alt+H, Esc) - guarded against duplicates
+  if (!window.__prayasKeydownListenerBound) {
+    window.__prayasKeydownListenerBound = true;
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        dispatch({ type: 'ACTION', name: 'STOP' });
+        return;
       }
-      return;
-    }
 
-    if (e.altKey) {
-      const panel = document.getElementById(PANEL_ID) || createPrayasAssistantPanel();
-      if (e.key === 'm' || e.key === 'M') {
-        e.preventDefault();
-        panel.style.display = 'flex';
-        toggleSpeechRecognition(panel);
-      } else if (e.key === 'n' || e.key === 'N') {
-        e.preventDefault();
-        executeUnifiedCommand('next field', panel);
-      } else if (e.key === 'b' || e.key === 'B') {
-        e.preventDefault();
-        executeUnifiedCommand('previous field', panel);
-      } else if (e.key === 'r' || e.key === 'R') {
-        e.preventDefault();
-        executeUnifiedCommand('read question', panel);
-      } else if (e.key === 'w' || e.key === 'W') {
-        e.preventDefault();
-        executeUnifiedCommand('read this page', panel);
-      } else if (e.key === 'f' || e.key === 'F') {
-        e.preventDefault();
-        executeUnifiedCommand('fill my details', panel);
-      } else if (e.key === 'h' || e.key === 'H') {
-        e.preventDefault();
-        executeUnifiedCommand('ai draft', panel);
+      if (e.altKey) {
+        const k = (e.key || '').toLowerCase();
+        const actionMap = {
+          'm': 'SPEAK_TOGGLE',
+          'n': 'NEXT_FIELD',
+          'b': 'PREV_FIELD',
+          'r': 'READ_QUESTION',
+          'w': 'PAGE_INFO',
+          'f': 'AUTOFILL',
+          'h': 'AI_DRAFT'
+        };
+        const actionName = actionMap[k];
+        if (actionName) {
+          e.preventDefault();
+          e.stopPropagation();
+          const panel = document.getElementById(PANEL_ID) || createPrayasAssistantPanel();
+          if (panel.style.display === 'none' || panel.classList.contains('prayas-hidden')) {
+            panel.style.display = 'flex';
+            panel.classList.remove('prayas-hidden');
+          }
+          dispatch({ type: 'ACTION', name: actionName });
+        }
       }
-    }
-  });
+    }, true); // useCapture ensures shortcuts intercept before form fields consume keystrokes
+  }
 
   // Background Runtime Message Dispatcher
   function prayasRuntimeMessageDispatcher(message, sender, sendResponse) {
     if (message.type === 'PRAYAS_TOGGLE_PANEL') {
       togglePrayasAssistantPanel();
+      sendResponse({ success: true, acknowledged: true });
+      return true;
+    }
+
+    if (message.type === 'PRAYAS_VOICE_COMMAND' || message.type === 'PRAYAS_EXECUTE_ACTION') {
+      const cmdToAction = {
+        'NEXT_FIELD': 'NEXT_FIELD',
+        'PREVIOUS_FIELD': 'PREV_FIELD',
+        'PREV_FIELD': 'PREV_FIELD',
+        'READ_CURRENT_FIELD': 'READ_QUESTION',
+        'READ_QUESTION': 'READ_QUESTION',
+        'START_AUTOFILL': 'AUTOFILL',
+        'AUTOFILL': 'AUTOFILL',
+        'SKIP_FIELD': 'SKIP',
+        'SKIP': 'SKIP',
+        'CLEAR_CURRENT_FIELD': 'STOP',
+        'STOP': 'STOP'
+      };
+      const act = cmdToAction[message.command] || message.command || message.action;
+      dispatch({ type: 'ACTION', name: act });
       sendResponse({ success: true, acknowledged: true });
       return true;
     }
@@ -2238,9 +2404,7 @@
       const navigables = getNavigableElements();
       const target = navigables.find(e => e.tagName.toLowerCase() === 'textarea') || navigables[navigables.length - 1];
       if (target) {
-        target.value = text;
-        target.dispatchEvent(new Event('input', { bubbles: true }));
-        target.dispatchEvent(new Event('change', { bubbles: true }));
+        setNativeValue(target, text, 'AI_DRAFT');
         speakAnnouncement('Draft answer inserted.');
         sendResponse({ success: true, inserted: true });
       } else {
@@ -2259,6 +2423,7 @@
 
   // Expose Core on window
   window.__PRAYAS_CORE__ = {
+    dispatch,
     fieldRegistry,
     auditIssues,
     runFullScanAndAudit,

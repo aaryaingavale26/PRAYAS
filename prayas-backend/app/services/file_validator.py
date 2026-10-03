@@ -6,15 +6,17 @@ import zipfile
 from app.core.config import settings
 
 # Supported extensions
-ALLOWED_EXTENSIONS: Set[str] = {".pdf", ".docx"}
+ALLOWED_EXTENSIONS: Set[str] = {".pdf", ".docx", ".txt"}
 
 # Official MIME types
 PDF_MIME: str = "application/pdf"
 DOCX_MIME: str = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+TXT_MIME: str = "text/plain"
 
 ALLOWED_MIME_TYPES = {
     ".pdf": {PDF_MIME},
     ".docx": {DOCX_MIME},
+    ".txt": {TXT_MIME},
 }
 
 # Magic signatures
@@ -70,13 +72,13 @@ def validate_document(
     # 3. File extension check (case-insensitive)
     if not file_name or "." not in file_name:
         raise FileValidationError(
-            "Invalid file name: missing extension. Supported formats are .pdf and .docx."
+            "Invalid file name: missing extension. Supported formats are .pdf, .docx and .txt."
         )
 
     ext = Path(file_name).suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise FileValidationError(
-            f"Unsupported file extension '{ext}'. Only .pdf and .docx documents are accepted."
+            f"Unsupported file extension '{ext}'. Only .pdf, .docx and .txt documents are accepted."
         )
 
     # 4. MIME type check
@@ -89,7 +91,18 @@ def validate_document(
         )
 
     # 5. File signature / Magic bytes check
-    if ext == ".pdf":
+    if ext == ".txt":
+        if b"\x00" in file_bytes[:4096]:
+            raise FileValidationError("Invalid TXT file: Binary content detected.")
+        try:
+            file_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            try:
+                file_bytes.decode("latin-1")
+            except Exception:
+                raise FileValidationError("Invalid TXT file: Could not decode text content.")
+
+    elif ext == ".pdf":
         if not file_bytes.startswith(PDF_MAGIC):
             raise FileValidationError("Invalid PDF file: Missing standard %PDF- header signature.")
 

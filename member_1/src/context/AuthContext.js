@@ -24,8 +24,30 @@ export function AuthProvider({ children }) {
     if (isSupabaseConfigured && supabase) {
       // Get initial session
       supabase.auth.getSession().then(({ data: { session } }) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+        if (session) {
+          setSession(session);
+          setUser(session.user ?? null);
+          if (typeof window !== "undefined" && session.access_token) {
+            localStorage.setItem("prayas_auth_token", session.access_token);
+            window.postMessage({ type: "PRAYAS_AUTH_SYNC", user: session.user, token: session.access_token }, "*");
+          }
+        } else {
+          // Check for local session in storage if Supabase email confirmation or rate limit was active
+          const savedMockUser = typeof window !== "undefined" ? localStorage.getItem("prayas_mock_user") : null;
+          if (savedMockUser) {
+            try {
+              const parsed = JSON.parse(savedMockUser);
+              setUser(parsed);
+              const safeEmail = (parsed.email || "applicant@example.com").trim().toLowerCase();
+              const token = `prayas_dev_token_${btoa(safeEmail)}`;
+              setSession({ user: parsed, access_token: token });
+              localStorage.setItem("prayas_auth_token", token);
+              window.postMessage({ type: "PRAYAS_AUTH_SYNC", user: parsed, token }, "*");
+            } catch (e) {
+              console.error("Error restoring mock user", e);
+            }
+          }
+        }
         setLoading(false);
       });
 
@@ -33,8 +55,14 @@ export function AuthProvider({ children }) {
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+        if (session) {
+          setSession(session);
+          setUser(session.user ?? null);
+          if (typeof window !== "undefined" && session.access_token) {
+            localStorage.setItem("prayas_auth_token", session.access_token);
+            window.postMessage({ type: "PRAYAS_AUTH_SYNC", user: session.user, token: session.access_token }, "*");
+          }
+        }
         setLoading(false);
       });
 
@@ -46,7 +74,10 @@ export function AuthProvider({ children }) {
         try {
           const parsed = JSON.parse(savedMockUser);
           setUser(parsed);
-          setSession({ user: parsed, access_token: "mock-token" });
+          const safeEmail = (parsed.email || "applicant@example.com").trim().toLowerCase();
+          const token = `prayas_dev_token_${btoa(safeEmail)}`;
+          setSession({ user: parsed, access_token: token });
+          localStorage.setItem("prayas_auth_token", token);
         } catch (e) {
           console.error("Error restoring mock user", e);
         }
@@ -57,17 +88,20 @@ export function AuthProvider({ children }) {
 
   // Helper to establish seamless local authenticated session
   const establishLocalSession = (email, fullName = "") => {
+    const safeEmail = (email || "applicant@example.com").trim().toLowerCase();
+    const token = `prayas_dev_token_${btoa(safeEmail)}`;
     const mockUser = {
       id: `applicant-${Date.now()}`,
-      email,
-      user_metadata: { full_name: fullName || email.split("@")[0] },
+      email: safeEmail,
+      user_metadata: { full_name: fullName || safeEmail.split("@")[0] },
       isLocalSession: true,
     };
     setUser(mockUser);
-    setSession({ user: mockUser, access_token: `prayas-session-${Date.now()}` });
+    setSession({ user: mockUser, access_token: token });
     if (typeof window !== "undefined") {
       localStorage.setItem("prayas_mock_user", JSON.stringify(mockUser));
-      window.postMessage({ type: "PRAYAS_AUTH_SYNC", user: mockUser }, "*");
+      localStorage.setItem("prayas_auth_token", token);
+      window.postMessage({ type: "PRAYAS_AUTH_SYNC", user: mockUser, token }, "*");
     }
     return { user: mockUser, fallback: true };
   };
@@ -150,10 +184,11 @@ export function AuthProvider({ children }) {
       },
     };
     setUser(demoUser);
-    setSession({ user: demoUser, access_token: "demo-token" });
+    setSession({ user: demoUser, access_token: "prayas_demo_bearer_token" });
     if (typeof window !== "undefined") {
       localStorage.setItem("prayas_mock_user", JSON.stringify(demoUser));
-      window.postMessage({ type: "PRAYAS_AUTH_SYNC", user: demoUser }, "*");
+      localStorage.setItem("prayas_auth_token", "prayas_demo_bearer_token");
+      window.postMessage({ type: "PRAYAS_AUTH_SYNC", user: demoUser, token: "prayas_demo_bearer_token" }, "*");
     }
     return demoUser;
   };
@@ -167,7 +202,8 @@ export function AuthProvider({ children }) {
     setSession(null);
     if (typeof window !== "undefined") {
       localStorage.removeItem("prayas_mock_user");
-      window.postMessage({ type: "PRAYAS_AUTH_SYNC", user: null }, "*");
+      localStorage.removeItem("prayas_auth_token");
+      window.postMessage({ type: "PRAYAS_AUTH_SYNC", user: null, token: null }, "*");
     }
   };
 

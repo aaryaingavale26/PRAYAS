@@ -51,7 +51,7 @@ class TestFileValidator(unittest.TestCase):
     # 3. Unsupported file extension
     def test_unsupported_file_extension(self):
         with self.assertRaises(FileValidationError) as ctx:
-            validate_document("resume.txt", "text/plain", b"Sample text content")
+            validate_document("resume.rtf", "application/rtf", b"{\\rtf1 Sample text content}")
         self.assertIn("Unsupported file extension", str(ctx.exception))
 
         with self.assertRaises(FileValidationError) as ctx_exe:

@@ -1,20 +1,30 @@
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
+import { apiRequest, canCallBackend } from "@/lib/apiClient";
 
+// Personal fields start EMPTY. They are only ever filled from the user's own CV or manual entry,
+// so CV autofill can populate them and the assistant never sees placeholder/fake data.
 export const DEFAULT_PASSPORT = {
   // 1. Personal & Contact (Core Structured Data)
-  fullName: "Rahul Sharma",
-  email: "rahul.sharma@applicant.in",
-  phone: "+91 98765 43210",
-  location: "Bengaluru, Karnataka, India",
-  address: "42 MG Road, Indiranagar, Bengaluru, 560038",
-  dob: "1998-03-05",
-  education: "Bachelor of Technology in Computer Science, VTU (2016 - 2020)",
-  skills: "React, Next.js, TypeScript, JavaScript, Python, WCAG 2.2 AA, ARIA, Tailwind CSS, Accessibility Auditing",
-  workExperience: "Senior Accessibility Engineer at InnoTech (4+ years), specialized in screen-reader navigation and WCAG compliance.",
-  portfolioUrl: "https://github.com/rahul-sharma",
-  linkedinUrl: "https://linkedin.com/in/rahul-sharma-access",
-  githubUrl: "https://github.com/rahul-sharma",
-  idDetails: "Verified Applicant ID: PRAYAS-2026-IND-0824",
+  fullName: "",
+  email: "",
+  phone: "",
+  location: "",
+  address: "",
+  dob: "",
+  nationality: "",
+  passportNumber: "",
+  passportExpiry: "",
+  professionalSummary: "",
+  education: "",
+  skills: "",
+  workExperience: "",
+  languages: "",
+  certifications: "",
+  projects: "",
+  portfolioUrl: "",
+  linkedinUrl: "",
+  githubUrl: "",
+  idDetails: "",
 
   // 2. Interaction & Assistive Tech
   preferredMethod: "standard", // "keyboard-only" | "screen-reader" | "voice-control" | "mouse-pointer" | "switch-device" | "standard"
@@ -29,56 +39,63 @@ export const DEFAULT_PASSPORT = {
   reducedMotion: false,
 
   // 4. Cognitive & Language
-  simplifiedLanguage: true,
+  simplifiedLanguage: false,
   stepByStepForm: false,
-  extendedTime: true,
+  extendedTime: false,
 
   // 5. Sensitive & Optional (100% User Discretion)
   shareAccommodations: false,
-  accommodationNotes: "Screen reader compatible UI, high contrast, extra time for coding assessments.",
+  accommodationNotes: "",
   lastUpdated: new Date().toISOString(),
 };
 
 const STORAGE_KEY = "prayas_user_passport";
+const storageKeyFor = (userId) => (userId ? `${STORAGE_KEY}:${userId}` : STORAGE_KEY);
+
+function readLocal(userId) {
+  if (typeof window === "undefined") return null;
+  const local = localStorage.getItem(storageKeyFor(userId));
+  if (!local) return null;
+  try {
+    return JSON.parse(local);
+  } catch (e) {
+    console.error("Error parsing local passport", e);
+    return null;
+  }
+}
+
+function broadcast(data) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("prayas-passport-updated", { detail: data }));
+  window.postMessage({ type: "PRAYAS_PASSPORT_SYNC", passport: data }, "*");
+}
 
 /**
- * Get current saved passport for user or fallback to defaults
+ * Get the signed-in user's passport. The backend is the source of truth (per-user, authenticated);
+ * a per-user local cache is used only when the backend is unreachable.
  */
 export async function getPassport(userId = null) {
-  // If Supabase is configured and we have a user
-  if (isSupabaseConfigured && supabase && userId) {
+  if (await canCallBackend()) {
     try {
-      const { data, error } = await supabase
-        .from("passports")
-        .select("*")
-        .eq("user_id", userId)
-        .single();
-
-      if (!error && data?.passport_data) {
-        return { ...DEFAULT_PASSPORT, ...data.passport_data };
+      const data = await apiRequest("/api/profile");
+      const merged = { ...DEFAULT_PASSPORT, ...(data.passport || {}) };
+      if (typeof window !== "undefined") {
+        localStorage.setItem(storageKeyFor(userId), JSON.stringify(merged));
       }
+      return merged;
     } catch (e) {
-      console.warn("Could not fetch passport from Supabase, falling back to local storage", e);
+      console.warn("Could not fetch passport from backend, falling back to local cache", e);
     }
   }
 
-  // Local storage fallback
-  if (typeof window !== "undefined") {
-    const local = localStorage.getItem(STORAGE_KEY);
-    if (local) {
-      try {
-        return { ...DEFAULT_PASSPORT, ...JSON.parse(local) };
-      } catch (e) {
-        console.error("Error parsing local passport", e);
-      }
-    }
-  }
-
+  const local = readLocal(userId);
+  if (local) return { ...DEFAULT_PASSPORT, ...local };
   return { ...DEFAULT_PASSPORT };
 }
 
 /**
- * Save passport data locally and to Supabase if connected
+ * Save passport data through the backend (which also re-indexes it for the AI assistant),
+ * with a per-user local cache for instant access and extension synchronization.
  */
 export async function savePassport(passportData, userId = null) {
   const updatedData = {
@@ -86,15 +103,21 @@ export async function savePassport(passportData, userId = null) {
     lastUpdated: new Date().toISOString(),
   };
 
-  // 1. Save to local storage for instant access & extension synchronization
   if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedData));
-    // Dispatch custom event for real-time reactivity in other components
-    window.dispatchEvent(new CustomEvent("prayas-passport-updated", { detail: updatedData }));
-    window.postMessage({ type: "PRAYAS_PASSPORT_SYNC", passport: updatedData }, "*");
+    localStorage.setItem(storageKeyFor(userId), JSON.stringify(updatedData));
+    broadcast(updatedData);
   }
 
-  // 2. Save to Supabase if configured
+  if (await canCallBackend()) {
+    try {
+      await apiRequest("/api/profile", { method: "PUT", body: updatedData });
+      return updatedData;
+    } catch (e) {
+      console.warn("Could not save passport through the backend:", e);
+    }
+  }
+
+  // Fallback: direct Supabase upsert (RLS-protected)
   if (isSupabaseConfigured && supabase && userId) {
     try {
       const { error } = await supabase.from("passports").upsert({
@@ -102,13 +125,21 @@ export async function savePassport(passportData, userId = null) {
         passport_data: updatedData,
         updated_at: new Date().toISOString(),
       });
-      if (error) {
-        console.warn("Supabase upsert warning:", error);
-      }
+      if (error) console.warn("Supabase upsert warning:", error);
     } catch (e) {
       console.warn("Could not sync passport with Supabase:", e);
     }
   }
 
   return updatedData;
+}
+
+/** Update the local cache + notify listeners after the backend changed the passport (e.g. CV confirm). */
+export function cachePassport(passport, userId = null) {
+  const merged = { ...DEFAULT_PASSPORT, ...(passport || {}), lastUpdated: new Date().toISOString() };
+  if (typeof window !== "undefined") {
+    localStorage.setItem(storageKeyFor(userId), JSON.stringify(merged));
+    broadcast(merged);
+  }
+  return merged;
 }

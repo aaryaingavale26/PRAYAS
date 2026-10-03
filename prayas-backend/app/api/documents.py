@@ -5,6 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 
 from app.core.auth import AuthenticatedUser, get_current_user
+from app.core.rate_limit import rate_limited_user
 from app.schemas.document import DocumentRetrievalResponse, DocumentUploadResponse
 from app.services.chunk_storage import delete_document_chunks
 from app.services.document_indexer import index_document
@@ -17,10 +18,23 @@ from app.services.document_processor import (
     DocumentProcessingError,
     extract_text_from_docx,
     extract_text_from_pdf,
+    extract_text_from_txt,
 )
 from app.services.file_validator import FileValidationError, validate_document
+from app.services.knowledge_service import (
+    DocumentNotFoundError,
+    KnowledgeServiceError,
+    delete_user_document,
+    list_user_documents,
+    normalize_doc_type,
+    public_document_view,
+    reindex_profile,
+    reindex_user_document,
+    update_document_status,
+)
 from app.services.storage_service import (
     StorageServiceError,
+    create_signed_url,
     delete_document,
     download_document,
     upload_document,
@@ -38,8 +52,9 @@ router = APIRouter(prefix="/documents", tags=["Documents"])
     summary="Upload, validate, extract, and store document metadata",
 )
 async def upload_document_endpoint(
-    file: UploadFile = File(..., description="PDF or DOCX document binary"),
+    file: UploadFile = File(..., description="PDF, DOCX or TXT document binary"),
     user_id: Optional[str] = Form(None, description="Optional legacy user ID (ignored, authenticated token identity used)"),
+    doc_type: Optional[str] = Form(None, description="resume | cover_letter | project | certificate | other"),
     current_user: AuthenticatedUser = Depends(get_current_user),
 ):
     """
@@ -82,6 +97,8 @@ async def upload_document_endpoint(
             extracted_text = extract_text_from_pdf(file_bytes)
         elif ext == ".docx":
             extracted_text = extract_text_from_docx(file_bytes)
+        elif ext == ".txt":
+            extracted_text = extract_text_from_txt(file_bytes)
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -122,6 +139,7 @@ async def upload_document_endpoint(
             file_type=content_type,
             file_size=file_size,
             document_id=doc_id,
+            doc_type=normalize_doc_type(doc_type),
         )
     except DocumentMetadataError:
         # Clean up orphaned storage file to avoid storage bloat
@@ -141,6 +159,7 @@ async def upload_document_endpoint(
     chunks_count = 0
 
     if extracted_text and extracted_text.strip():
+        update_document_status(final_doc_id, "indexing")
         try:
             index_result = index_document(
                 document_id=final_doc_id,
@@ -157,6 +176,14 @@ async def upload_document_endpoint(
                 pass
             indexed = False
             chunks_count = 0
+        update_document_status(
+            final_doc_id,
+            "indexed" if indexed else "failed",
+            chunks_count,
+            None if indexed else "Indexing failed. Try re-indexing.",
+        )
+    else:
+        update_document_status(final_doc_id, "empty", 0, "No readable text found.")
 
     # 8. Return structured response
     return DocumentUploadResponse(
@@ -169,7 +196,92 @@ async def upload_document_endpoint(
         extracted_text=extracted_text,
         indexed=indexed,
         chunks_count=chunks_count,
+        doc_type=normalize_doc_type(doc_type),
+        index_status="indexed" if indexed else ("failed" if extracted_text and extracted_text.strip() else "empty"),
     )
+
+
+@router.get(
+    "",
+    status_code=status.HTTP_200_OK,
+    summary="List the authenticated user's knowledge sources with indexing status",
+)
+async def list_documents_endpoint(current_user: AuthenticatedUser = Depends(get_current_user)):
+    try:
+        rows = list_user_documents(current_user.user_id)
+    except KnowledgeServiceError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
+    return {"documents": [public_document_view(r) for r in rows]}
+
+
+@router.post(
+    "/profile/reindex",
+    status_code=status.HTTP_200_OK,
+    summary="Re-index the user's passport fields as knowledge chunks",
+)
+async def reindex_profile_endpoint(current_user: AuthenticatedUser = Depends(rate_limited_user)):
+    try:
+        return reindex_profile(current_user.user_id)
+    except KnowledgeServiceError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
+
+
+@router.post(
+    "/{document_id}/reindex",
+    status_code=status.HTTP_200_OK,
+    summary="Re-read and re-index one of the user's documents",
+)
+async def reindex_document_endpoint(
+    document_id: str,
+    current_user: AuthenticatedUser = Depends(rate_limited_user),
+):
+    try:
+        return reindex_user_document(current_user.user_id, document_id)
+    except DocumentNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+    except KnowledgeServiceError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+
+
+@router.delete(
+    "/{document_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Delete a document, its file, chunks and embeddings",
+)
+async def delete_document_endpoint(
+    document_id: str,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+):
+    try:
+        delete_user_document(current_user.user_id, document_id)
+    except DocumentNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+    except KnowledgeServiceError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+    return {"deleted": True, "document_id": document_id}
+
+
+@router.get(
+    "/{document_id}/url",
+    status_code=status.HTTP_200_OK,
+    summary="Short-lived signed URL for a private document (owner only)",
+)
+async def document_signed_url_endpoint(
+    document_id: str,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+):
+    try:
+        uuid.UUID(document_id.strip())
+        metadata = get_document_metadata(document_id.strip())
+    except (ValueError, DocumentMetadataError):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+    if not metadata or str(metadata.get("user_id", "")).strip() != current_user.user_id or not metadata.get("storage_path"):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+    try:
+        url = create_signed_url(metadata["storage_path"])
+    except StorageServiceError:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Could not create a download link.")
+    return {"url": url, "expires_in": 300}
 
 
 @router.get(
@@ -247,6 +359,8 @@ async def get_document_endpoint(
             extracted_text = extract_text_from_pdf(file_bytes)
         elif ext == ".docx":
             extracted_text = extract_text_from_docx(file_bytes)
+        elif ext == ".txt":
+            extracted_text = extract_text_from_txt(file_bytes)
         else:
             extracted_text = ""
     except DocumentProcessingError as proc_err:

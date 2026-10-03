@@ -39,7 +39,7 @@ export default function DashboardOverviewPage() {
       setLoading(true);
       const [passportData, docsData, reportsData] = await Promise.all([
         getPassport(user?.id),
-        getDocuments(),
+        getDocuments().then((d) => d.filter((x) => !x.isProfile)).catch(() => []),
         getScorecardReports(),
       ]);
       setPassport(passportData);
@@ -57,7 +57,8 @@ export default function DashboardOverviewPage() {
 
     // Listen to real-time updates from other pages/tabs
     const handlePassportUpdate = (e) => setPassport(e.detail);
-    const handleDocsUpdate = (e) => setDocuments(e.detail);
+    const handleDocsUpdate = () =>
+      getDocuments().then((d) => setDocuments(d.filter((x) => !x.isProfile))).catch(() => {});
     const handleScorecardUpdate = (e) => setReports(e.detail);
 
     window.addEventListener("prayas-passport-updated", handlePassportUpdate);
