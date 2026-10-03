@@ -83,6 +83,7 @@ class ExtensionRAGRequest(BaseModel):
     question: str
     context: Optional[str] = ""
     preferences: Optional[Dict[str, Any]] = None
+    language: Optional[str] = "en"
     # Legacy fields: accepted for backward compatibility but IGNORED.
     # Identity always comes from the verified auth token.
     user_id: Optional[str] = None
@@ -93,6 +94,7 @@ class ExtensionRAGRequest(BaseModel):
 class VoiceAgentRAGRequest(BaseModel):
     question: str
     field_id: Optional[str] = None
+    language: Optional[str] = "en"
     user_id: Optional[str] = None
     user_email: Optional[str] = None
     user_profile: Optional[Dict[str, Any]] = None
@@ -116,8 +118,13 @@ class AuditReportSubmission(BaseModel):
 # Shared RAG helper (web assistant + Chrome extension + voice agent)
 # ==========================================
 
-def _ask_user_knowledge(user: AuthenticatedUser, question: str, context: str = "") -> Dict[str, Any]:
-    """Single code path: answers come only from this user's documents and passport."""
+def _ask_user_knowledge(
+    user: AuthenticatedUser,
+    question: str,
+    context: str = "",
+    language: Optional[str] = "en",
+) -> Dict[str, Any]:
+    """Single code path: answers come only from this user's documents and passport, in their chosen language."""
     q = (question or "").strip()
     if not q:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Question cannot be empty.")
@@ -125,7 +132,7 @@ def _ask_user_knowledge(user: AuthenticatedUser, question: str, context: str = "
         # Page context is untrusted; keep it short and clearly labelled.
         q = f"{q}\n(Form context, for reference only: {context.strip()[:300]})"
     try:
-        return answer_for_user(user.user_id, q)
+        return answer_for_user(user.user_id, q, language=language or "en")
     except KnowledgeServiceError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
 
@@ -241,7 +248,7 @@ async def extension_rag_answer(
     payload: ExtensionRAGRequest,
     current_user: AuthenticatedUser = Depends(rate_limited_user),
 ):
-    result = _ask_user_knowledge(current_user, payload.question, payload.context or "")
+    result = _ask_user_knowledge(current_user, payload.question, payload.context or "", language=payload.language)
     return {
         "success": True,
         "draftAnswer": result["answer"],
@@ -250,6 +257,9 @@ async def extension_rag_answer(
         "found": result["found"],
         "empty_state": result["empty_state"],
         "upload_url": result["upload_url"],
+        "language": result.get("language", payload.language or "en"),
+        "language_name": result.get("language_name", "English"),
+        "bcp47": result.get("bcp47", "en-IN"),
     }
 
 
@@ -258,7 +268,7 @@ async def voice_agent_generate_answer(
     payload: VoiceAgentRAGRequest,
     current_user: AuthenticatedUser = Depends(rate_limited_user),
 ):
-    result = _ask_user_knowledge(current_user, payload.question, payload.supplemental_notes or "")
+    result = _ask_user_knowledge(current_user, payload.question, payload.supplemental_notes or "", language=payload.language)
     return {
         "success": True,
         "draft_answer": result["answer"],
@@ -268,6 +278,9 @@ async def voice_agent_generate_answer(
         "evidence_found": result["found"],
         "empty_state": result["empty_state"],
         "upload_url": result["upload_url"],
+        "language": result.get("language", payload.language or "en"),
+        "language_name": result.get("language_name", "English"),
+        "bcp47": result.get("bcp47", "en-IN"),
     }
 
 
@@ -277,7 +290,7 @@ async def web_client_rag_query(
     payload: ExtensionRAGRequest,
     current_user: AuthenticatedUser = Depends(rate_limited_user),
 ):
-    result = _ask_user_knowledge(current_user, payload.question, payload.context or "")
+    result = _ask_user_knowledge(current_user, payload.question, payload.context or "", language=payload.language)
     return {
         "answer": result["answer"],
         "sources": result["sources"],
@@ -285,6 +298,9 @@ async def web_client_rag_query(
         "empty_state": result["empty_state"],
         "has_context": result["has_context"],
         "upload_url": result["upload_url"],
+        "language": result.get("language", payload.language or "en"),
+        "language_name": result.get("language_name", "English"),
+        "bcp47": result.get("bcp47", "en-IN"),
         "isLiveBackend": True,
     }
 

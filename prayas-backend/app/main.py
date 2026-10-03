@@ -13,6 +13,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.router import api_router
 from app.api.integration import router as integration_router
+from app.api.bhashini import router as bhashini_router
 from app.core.config import settings
 from app.db.supabase import is_supabase_configured
 
@@ -90,7 +91,11 @@ def health_check():
 app.include_router(integration_router, prefix="/api")
 app.include_router(integration_router, prefix=settings.API_V1_STR)
 
-# Mount API v1 router
+# Mount Bhashini router under /api directly as well
+app.include_router(bhashini_router, prefix="/api")
+
+# Mount API routers (/api and /api/v1) for seamless client compatibility
+app.include_router(api_router, prefix="/api")
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 

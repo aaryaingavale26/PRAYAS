@@ -59,6 +59,59 @@ export default function DocumentHubPage() {
   const [applying, setApplying] = useState(false);
 
   const fileInputRef = useRef(null);
+  const dragCounter = useRef(0);
+
+  // Prevent browser from opening files dropped outside the drop zone
+  useEffect(() => {
+    const prevent = (e) => {
+      e.preventDefault();
+    };
+    window.addEventListener("dragover", prevent, false);
+    window.addEventListener("drop", prevent, false);
+    return () => {
+      window.removeEventListener("dragover", prevent, false);
+      window.removeEventListener("drop", prevent, false);
+    };
+  }, []);
+
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current += 1;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current -= 1;
+    if (dragCounter.current <= 0) {
+      dragCounter.current = 0;
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "copy";
+    if (!isDragging) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounter.current = 0;
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      handleFileProcess(files[0]);
+    }
+  };
 
   const refresh = useCallback(async () => {
     try {
@@ -75,10 +128,17 @@ export default function DocumentHubPage() {
     refresh();
   }, [refresh]);
 
+  const processingLock = useRef(false);
+
   const handleFileProcess = async (file) => {
+    if (!file || processingLock.current) return;
+    processingLock.current = true;
+    setTimeout(() => {
+      processingLock.current = false;
+    }, 800);
+
     setErrorMessage("");
     setSuccessMessage("");
-    if (!file) return;
     const problem = validateFile(file);
     if (problem) {
       setErrorMessage(problem);
@@ -231,42 +291,40 @@ export default function DocumentHubPage() {
 
         <div className="p-6">
           <div
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
-            onDrop={(e) => {
-              e.preventDefault();
-              setIsDragging(false);
-              handleFileProcess(e.dataTransfer.files?.[0]);
-            }}
-            onClick={() => fileInputRef.current?.click()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                fileInputRef.current?.click();
-              }
-            }}
-            tabIndex={0}
-            role="button"
-            aria-label="Upload document drop zone. Press enter to choose a file"
-            className={`border-2 border-dashed rounded-3xl p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center min-h-[190px] ${
-              isDragging ? "border-[#1F5FBF] bg-[#D4F1FE] scale-[0.99]" : "border-[#D5D5C8] hover:border-[#1F5FBF] hover:bg-[#F3F3E3] bg-[#FBFBEF]"
+            className={`relative overflow-hidden border-2 border-dashed rounded-3xl p-8 text-center transition-all duration-200 cursor-pointer flex flex-col items-center justify-center min-h-[210px] select-none ${
+              isDragging
+                ? "border-[#1F5FBF] bg-[#D4F1FE] ring-4 ring-[#1F5FBF]/30 scale-[1.01] shadow-xl"
+                : "border-[#D5D5C8] hover:border-[#1F5FBF] hover:bg-[#F3F3E3] bg-[#FBFBEF]"
             }`}
           >
+            {/* Native transparent input overlay that captures both file drag-drops and clicks perfectly */}
             <input
               ref={fileInputRef}
               type="file"
               accept=".pdf,.docx,.txt"
-              className="sr-only"
-              tabIndex={-1}
-              onChange={(e) => handleFileProcess(e.target.files?.[0])}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFileProcess(file);
+                e.target.value = "";
+              }}
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              tabIndex={0}
+              aria-label="Upload document drop zone. Drag and drop a PDF, DOCX or TXT file here, or click to choose from your device"
             />
-            <div className="h-14 w-14 rounded-2xl bg-[#E0F2FE] border border-[#BAE6FD] text-[#0284C7] flex items-center justify-center mb-3">
+
+            <div className={`h-14 w-14 rounded-2xl flex items-center justify-center mb-3 pointer-events-none transition-transform duration-200 z-10 ${
+              isDragging ? "bg-[#1F5FBF] text-white scale-110 shadow-md" : "bg-[#E0F2FE] border border-[#BAE6FD] text-[#0284C7]"
+            }`}>
               <UploadCloud className="h-7 w-7" aria-hidden="true" />
             </div>
-            <p className="font-display text-base font-extrabold text-[#18191D]">
-              {isDragging ? "Drop your document here" : "Click to select or drag and drop a document"}
+            <p className="font-display text-base sm:text-lg font-extrabold text-[#18191D] pointer-events-none z-10">
+              {isDragging ? "Drop your document to upload!" : "Click to select or drag and drop a document"}
             </p>
-            <p className="text-xs text-[#646672] mt-1">PDF, DOCX or TXT · up to 10 MB · private to your account</p>
+            <p className="text-xs text-[#646672] mt-1 pointer-events-none z-10">PDF, DOCX or TXT · up to 10 MB · private to your account</p>
           </div>
 
           {uploading && (

@@ -6,6 +6,7 @@ from app.api.onboarding import router as onboarding_router
 from app.api.search import router as search_router
 from app.api.rag import router as rag_router
 from app.api.simplification import router as simplification_router
+from app.api.bhashini import router as bhashini_router
 from app.db.supabase import check_supabase_connection, check_table_access, is_supabase_configured
 
 api_router = APIRouter()
@@ -17,6 +18,7 @@ api_router.include_router(gemini_router)
 api_router.include_router(search_router)
 api_router.include_router(rag_router)
 api_router.include_router(simplification_router)
+api_router.include_router(bhashini_router)
 
 
 @api_router.get("/status", tags=["System"])

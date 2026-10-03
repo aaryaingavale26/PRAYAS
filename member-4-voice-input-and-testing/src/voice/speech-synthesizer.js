@@ -53,20 +53,40 @@ export class SpeechSynthesizer {
     if (!this.synth) return;
     this.voices = this.synth.getVoices();
 
-    // Prefer high-quality English voices (Google US English, Microsoft Natural, etc.)
-    const preferredVoices = this.voices.filter(v => v.lang.startsWith('en'));
-    const naturalVoice = preferredVoices.find(v => 
-      v.name.includes('Natural') || 
-      v.name.includes('Google') || 
-      v.name.includes('Jenny') || 
-      v.name.includes('Aria')
-    );
+    const currentLangPrefix = (this.lang || 'en').split('-')[0].toLowerCase();
 
-    this.selectedVoice = naturalVoice || preferredVoices[0] || this.voices[0] || null;
+    // Look for matching regional voice first (e.g. Hindi, Tamil, Telugu, etc.)
+    const exactVoice = this.voices.find(v => v.lang.toLowerCase() === this.lang.toLowerCase());
+    const prefixVoice = this.voices.find(v => v.lang.toLowerCase().startsWith(currentLangPrefix));
+
+    if (exactVoice) {
+      this.selectedVoice = exactVoice;
+    } else if (prefixVoice) {
+      this.selectedVoice = prefixVoice;
+    } else {
+      // Prefer high-quality natural voices
+      const naturalVoice = this.voices.find(v => 
+        v.name.includes('Natural') || 
+        v.name.includes('Google') || 
+        v.name.includes('Jenny') || 
+        v.name.includes('Aria')
+      );
+      this.selectedVoice = naturalVoice || this.voices[0] || null;
+    }
 
     if (typeof this.onVoicesLoaded === 'function') {
       this.onVoicesLoaded(this.voices);
     }
+  }
+
+  /**
+   * Dynamically update synthesis language
+   * @param {string} lang - BCP 47 language tag
+   */
+  setLanguage(lang) {
+    if (!lang) return;
+    this.lang = lang;
+    this._loadVoices();
   }
 
   /**

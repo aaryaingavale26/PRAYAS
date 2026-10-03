@@ -28,6 +28,12 @@ from app.services.gemini_service import GeminiServiceError, generate_text, is_ge
 from app.services.profile_service import get_passport_record, passport_to_text
 from app.services.semantic_search import SemanticSearchError, search_similar_chunks
 from app.services.storage_service import StorageServiceError, delete_document, download_document
+from app.services.bhashini_service import (
+    SUPPORTED_LANGUAGES,
+    detect_indic_script,
+    normalize_language_code,
+    translate_text,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -290,6 +296,7 @@ def build_assistant_prompt(
     profile_text: str,
     excerpts: List[Dict[str, Any]],
     candidate_name: Optional[str] = None,
+    language: str = "en",
 ) -> str:
     blocks = []
     for idx, ex in enumerate(excerpts, start=1):
@@ -301,7 +308,20 @@ def build_assistant_prompt(
     profile_block = profile_text.strip() if profile_text and profile_text.strip() else "(no profile fields saved)"
     name_line = f"The user's name is {candidate_name}." if candidate_name else ""
 
+    target_lang = normalize_language_code(language)
+    lang_info = SUPPORTED_LANGUAGES.get(target_lang, SUPPORTED_LANGUAGES["en"])
+    if target_lang != "en":
+        lang_instruction = f"""
+LANGUAGE & DIALECT REQUIREMENTS:
+- The user has selected {lang_info['name']} ({lang_info['nativeName']}) in {lang_info['script']} script.
+- You MUST generate the "answer" field directly in authentic, natural, polite {lang_info['name']} ({lang_info['nativeName']}) using {lang_info['script']} script.
+- You MUST understand the user's question regardless of the dialect, colloquial phrasing, or code-mixed terms (e.g. Hinglish, Tanglish, etc.) used.
+- If "found" is false, write the "suggestion" in {lang_info['name']} ({lang_info['nativeName']})."""
+    else:
+        lang_instruction = ""
+
     return f"""You are PRAYAS, a personal career assistant. You answer using ONLY the user's own uploaded documents and saved profile shown below. {name_line}
+{lang_instruction}
 
 RULES:
 1. Use ONLY the PROFILE FIELDS and DOCUMENT EXCERPTS below. Never invent or assume facts, dates, employers, grades, numbers or credentials.
@@ -351,11 +371,13 @@ def answer_for_user(
     question: str,
     limit: Optional[int] = None,
     document_id: Optional[str] = None,
+    language: Optional[str] = "en",
 ) -> Dict[str, Any]:
     """
-    The single RAG entry point used by the web assistant AND the Chrome extension.
+    The single RAG entry point used by the web assistant, Chrome extension, and voice agent.
+    Supports Indian languages, dialects, and scripts.
 
-    Returns a dict with: answer, found, empty_state, sources[], has_context.
+    Returns a dict with: answer, found, empty_state, sources[], has_context, language, language_name, bcp47.
     """
     if not user_id or not str(user_id).strip():
         raise KnowledgeServiceError("Authentication is required.")
@@ -363,6 +385,10 @@ def answer_for_user(
         raise KnowledgeServiceError("Question cannot be empty.")
     if not is_gemini_configured():
         raise KnowledgeServiceError("The AI assistant is not configured on the server.")
+
+    detected_script = detect_indic_script(question)
+    target_lang = normalize_language_code(language if language and language != "auto" else (detected_script or "en"))
+    lang_info = SUPPORTED_LANGUAGES.get(target_lang, SUPPORTED_LANGUAGES["en"])
 
     docs = list_user_documents(user_id)
     doc_index = {str(d["id"]): d for d in docs}
@@ -372,18 +398,36 @@ def answer_for_user(
     profile_text = passport_to_text(passport)
 
     if not real_docs and not profile_text:
+        empty_msg = EMPTY_STATE_MESSAGE
+        if target_lang != "en":
+            tr = translate_text(empty_msg, source_lang="en", target_lang=target_lang)
+            empty_msg = tr.get("translated_text") or empty_msg
         return {
-            "answer": EMPTY_STATE_MESSAGE,
+            "answer": empty_msg,
             "found": False,
             "empty_state": True,
             "has_context": False,
             "sources": [],
             "upload_url": "/documents",
+            "language": target_lang,
+            "language_name": lang_info["name"],
+            "bcp47": lang_info["bcp47"],
         }
+
+    # If the user queried in an Indic language or script, translate the query to English
+    # for semantic vector retrieval against candidate's English resume/documents
+    search_query = question.strip()
+    if detected_script or target_lang != "en":
+        try:
+            tr = translate_text(question.strip(), source_lang=target_lang, target_lang="en")
+            if tr.get("translated_text") and tr["translated_text"].strip():
+                search_query = tr["translated_text"].strip()
+        except Exception as exc:
+            logger.debug("Query translation for RAG search failed: %s", str(exc))
 
     try:
         chunks = search_similar_chunks(
-            query=question.strip(),
+            query=search_query,
             limit=limit or settings.RAG_TOP_K,
             document_id=document_id,
             user_id=user_id,
@@ -408,7 +452,7 @@ def answer_for_user(
         })
 
     candidate_name = passport.get("fullName") if isinstance(passport.get("fullName"), str) else None
-    prompt = build_assistant_prompt(question, profile_text, excerpts, candidate_name)
+    prompt = build_assistant_prompt(question, profile_text, excerpts, candidate_name, language=target_lang)
 
     try:
         raw = generate_text(prompt=prompt)
@@ -420,16 +464,30 @@ def answer_for_user(
     found = bool(parsed.get("found")) and bool(str(parsed.get("answer") or "").strip())
 
     if not found:
-        suggestion = str(parsed.get("suggestion") or "").strip() or (
-            "Try uploading a document that contains this information, or add it to your Passport."
-        )
+        suggestion = str(parsed.get("suggestion") or "").strip()
+        if not suggestion:
+            suggestion = (
+                "Try uploading a document that contains this information, or add it to your Passport."
+            )
+            if target_lang != "en":
+                tr = translate_text(suggestion, source_lang="en", target_lang=target_lang)
+                suggestion = tr.get("translated_text") or suggestion
+
+        not_found_msg = NOT_FOUND_MESSAGE
+        if target_lang != "en":
+            tr = translate_text(not_found_msg, source_lang="en", target_lang=target_lang)
+            not_found_msg = tr.get("translated_text") or not_found_msg
+
         return {
-            "answer": f"{NOT_FOUND_MESSAGE} {suggestion}",
+            "answer": f"{not_found_msg} {suggestion}",
             "found": False,
             "empty_state": False,
             "has_context": bool(excerpts),
             "sources": [],
             "upload_url": "/documents",
+            "language": target_lang,
+            "language_name": lang_info["name"],
+            "bcp47": lang_info["bcp47"],
         }
 
     sources = [
@@ -460,4 +518,7 @@ def answer_for_user(
         "has_context": True,
         "sources": sources,
         "upload_url": "/documents",
+        "language": target_lang,
+        "language_name": lang_info["name"],
+        "bcp47": lang_info["bcp47"],
     }

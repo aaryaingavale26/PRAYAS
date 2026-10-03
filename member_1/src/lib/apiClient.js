@@ -204,20 +204,21 @@ export async function apiUpload(path, formData, onProgress) {
 }
 
 // ---------------------------------------------------------------------------
-// Assistant (RAG)
+// Assistant (RAG) & Multilingual Bhashini Voice
 // ---------------------------------------------------------------------------
 
 /**
  * Ask the assistant. Answers come ONLY from the signed-in user's own documents and passport.
  * Same backend logic that powers the Chrome extension's Autofill and AI Draft.
+ * Supports multi-dialect Indian languages.
  */
-export async function askAssistant({ question, context = "" }) {
+export async function askAssistant({ question, context = "", language = "en" }) {
   if (!question || !question.trim()) {
     throw new ApiError("Please type a question.", 400);
   }
   const data = await apiRequest("/api/rag/query", {
     method: "POST",
-    body: { question: question.trim(), context },
+    body: { question: question.trim(), context, language },
   });
   return {
     answer: data.answer,
@@ -225,7 +226,70 @@ export async function askAssistant({ question, context = "" }) {
     emptyState: Boolean(data.empty_state),
     sources: data.sources || [],
     uploadUrl: data.upload_url || "/documents",
+    language: data.language || language,
+    languageName: data.language_name || "English",
+    bcp47: data.bcp47 || "en-IN",
   };
+}
+
+/**
+ * Fetch supported Indian languages from Bhashini service
+ */
+export async function getSupportedLanguages() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/bhashini/languages`);
+    if (res.ok) {
+      const data = await res.json();
+      return data.languages || [];
+    }
+  } catch (e) {
+    /* fallback to local catalog */
+  }
+  return [
+    { code: "en", bcp47: "en-IN", name: "English", nativeName: "English", script: "Latin" },
+    { code: "hi", bcp47: "hi-IN", name: "Hindi", nativeName: "हिन्दी", script: "Devanagari" },
+    { code: "ta", bcp47: "ta-IN", name: "Tamil", nativeName: "தமிழ்", script: "Tamil" },
+    { code: "te", bcp47: "te-IN", name: "Telugu", nativeName: "తెలుగు", script: "Telugu" },
+    { code: "bn", bcp47: "bn-IN", name: "Bengali", nativeName: "বাংলা", script: "Bengali" },
+    { code: "mr", bcp47: "mr-IN", name: "Marathi", nativeName: "मराठी", script: "Devanagari" },
+    { code: "gu", bcp47: "gu-IN", name: "Gujarati", nativeName: "ગુજરાતી", script: "Gujarati" },
+    { code: "kn", bcp47: "kn-IN", name: "Kannada", nativeName: "ಕನ್ನಡ", script: "Kannada" },
+    { code: "ml", bcp47: "ml-IN", name: "Malayalam", nativeName: "മലയാളം", script: "Malayalam" },
+    { code: "pa", bcp47: "pa-IN", name: "Punjabi", nativeName: "ਪੰਜਾਬੀ", script: "Gurmukhi" },
+    { code: "or", bcp47: "or-IN", name: "Odia", nativeName: "ଓଡ଼ିଆ", script: "Odia" },
+    { code: "as", bcp47: "as-IN", name: "Assamese", nativeName: "অসমীয়া", script: "Bengali" },
+    { code: "ur", bcp47: "ur-IN", name: "Urdu", nativeName: "اردو", script: "Perso-Arabic" },
+  ];
+}
+
+/**
+ * Translate text across Indian languages via Bhashini
+ */
+export async function translateText({ text, sourceLanguage = "en", targetLanguage = "hi" }) {
+  const res = await fetch(`${API_BASE_URL}/api/bhashini/translate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      text,
+      source_language: sourceLanguage,
+      target_language: targetLanguage,
+    }),
+  });
+  if (!res.ok) throw new ApiError("Translation failed", res.status);
+  return await res.json();
+}
+
+/**
+ * Text-to-speech voice synthesis via Bhashini & Web Speech API fallback
+ */
+export async function synthesizeVoice({ text, language = "hi", gender = "female" }) {
+  const res = await fetch(`${API_BASE_URL}/api/bhashini/tts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, language, gender }),
+  });
+  if (!res.ok) throw new ApiError("TTS synthesis failed", res.status);
+  return await res.json();
 }
 
 // ---------------------------------------------------------------------------

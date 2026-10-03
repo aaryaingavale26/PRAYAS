@@ -61,6 +61,14 @@ class Settings(BaseSettings):
     # Private storage signed URL lifetime
     SIGNED_URL_TTL_SECONDS: int = 300
 
+    # Bhashini Indic Language & Voice AI
+    BHASHINI_API_KEY: Optional[str] = "3253d8cb25-504c-4c77-b6ee-b2f522324bb0"
+    BHASHINI_USER_ID: Optional[str] = None
+    BHASHINI_INFERENCE_KEY: Optional[str] = None
+    BHASHINI_INFERENCE_URL: str = "https://dhruva-api.bhashini.gov.in/services/inference/pipeline"
+    BHASHINI_PIPELINE_URL: str = "https://meity-auth.ulcacontrib.org/ulca/apis/v0/model/getModelsPipeline"
+    BHASHINI_PIPELINE_ID: str = "64392f96daac500b55c543cd"
+
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:

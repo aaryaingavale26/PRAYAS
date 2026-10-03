@@ -267,4 +267,16 @@ export class SpeechRecognizer {
       console.warn('[PRAYAS Voice] Recognition abort error:', err);
     }
   }
+
+  /**
+   * Dynamically update speech recognition language (e.g. 'hi-IN', 'ta-IN', 'te-IN')
+   * @param {string} lang - BCP 47 language tag
+   */
+  setLanguage(lang) {
+    if (!lang) return;
+    this.options.lang = lang;
+    if (this.recognition) {
+      this.recognition.lang = lang;
+    }
+  }
 }
